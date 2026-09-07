@@ -1,0 +1,2495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>问道长生 · 修仙模拟器</title>
+<style>
+:root{
+  --ink:#e9e4d2; --ink-dim:#a9b6ad; --ink-faint:#6f7d78;
+  --jade:#7ee8c9; --jade-deep:#2fbfa4; --gold:#e6c47a; --gold-deep:#b98a3e;
+  --purple:#b9a6ff; --red:#ff8d8d; --bg0:#070b1e; --bg1:#101a38; --bg2:#0d2440;
+  --panel:rgba(16,28,52,.72); --panel-line:rgba(126,232,201,.28);
+  --serif:"STKaiti","KaiTi","Kaiti SC","FZKai-Z03S","Noto Serif SC","Songti SC","SimSun",serif;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:var(--serif); color:var(--ink); overflow:hidden;
+  background:radial-gradient(1200px 700px at 75% -10%, #233a66 0%, rgba(16,26,56,0) 55%),
+             radial-gradient(900px 600px at -10% 110%, #123a4a 0%, rgba(10,20,40,0) 60%),
+             linear-gradient(160deg, #0a0f28 0%, #101a38 45%, #0b1e33 100%);
+  user-select:none;
+}
+/* ---------- background layers ---------- */
+#sky{position:fixed; inset:0; z-index:0; overflow:hidden;}
+#stars{position:absolute; inset:0;}
+#moon{position:absolute; top:6vh; right:9vw; width:clamp(70px,11vmin,130px); height:clamp(70px,11vmin,130px); border-radius:50%;
+  background:radial-gradient(circle at 38% 35%, #fff7e0 0%, #f7e6b0 40%, #e3c878 75%, #c9a74f 100%);
+  box-shadow:0 0 40px 8px rgba(247,230,176,.45), 0 0 140px 40px rgba(227,200,120,.18);
+  cursor:pointer;}
+#moon::after{content:''; position:absolute; inset:0; border-radius:50%;
+  background:radial-gradient(circle at 60% 55%, rgba(160,130,70,.28) 0 6%, transparent 6.5%),
+             radial-gradient(circle at 44% 72%, rgba(160,130,70,.26) 0 5%, transparent 5.5%),
+             radial-gradient(circle at 30% 42%, rgba(160,130,70,.22) 0 4%, transparent 4.4%);}
+#moon.hit{animation:moonhit .6s;}
+@keyframes moonhit{40%{transform:scale(1.12);} 70%{transform:scale(.96);}}
+#clouds{position:absolute; inset:0; pointer-events:none;}
+.cloud{position:absolute; background:linear-gradient(180deg, rgba(220,235,240,.16), rgba(200,220,235,.05));
+  border-radius:999px; filter:blur(6px);}
+#mountains{position:absolute; left:-5%; right:-5%; bottom:0; height:34vh; pointer-events:none;
+  background:
+    linear-gradient(115deg, transparent 44%, rgba(20,32,70,.9) 44.2% 47%, transparent 47.2%) 0 100%/16% 100% no-repeat,
+    linear-gradient(65deg,  transparent 50%, rgba(16,28,58,.95) 50.2% 54%, transparent 54.2%) 0 100%/22% 100% no-repeat,
+    linear-gradient(120deg, transparent 46%, rgba(26,40,84,.85) 46.2% 52%, transparent 52.2%) 0 100%/13% 100% no-repeat,
+    linear-gradient(70deg,  transparent 44%, rgba(12,22,48,.96) 44.2% 58%, transparent 58.2%) 0 100%/24% 100% no-repeat;
+  filter:blur(.4px);}
+#mist{position:absolute; left:-10%; right:-10%; bottom:-6%; height:18vh; pointer-events:none;
+  background:linear-gradient(180deg, rgba(126,232,201,0) 0%, rgba(90,160,180,.12) 45%, rgba(120,200,200,.18) 100%); filter:blur(10px);}
+.tw{position:absolute; border-radius:50%; background:#fff; opacity:0;}
+.shot{position:absolute; width:2px; height:2px; background:#fff; border-radius:50%; box-shadow:0 0 6px 1px rgba(255,255,255,.8); opacity:0;}
+/* ---------- common ---------- */
+button{font-family:var(--serif); cursor:pointer;}
+#app{position:relative; z-index:5; height:100%; display:flex; flex-direction:column;}
+#topbar{display:flex; align-items:center; gap:10px; padding:10px 16px; flex-wrap:wrap;
+  border-bottom:1px solid rgba(126,232,201,.18); background:linear-gradient(180deg, rgba(8,14,34,.72), rgba(8,14,34,.25));}
+.top-seal{font-size:13px; letter-spacing:2px; color:var(--jade); opacity:.75;}
+.tbtn{background:rgba(126,232,201,.06); color:var(--ink); border:1px solid rgba(126,232,201,.35); border-radius:8px;
+  padding:5px 12px; font-size:13px; letter-spacing:1px; transition:.18s;}
+.tbtn:hover{background:rgba(126,232,201,.18); box-shadow:0 0 12px rgba(126,232,201,.25);}
+#topname{font-size:16px; letter-spacing:2px; color:var(--gold); text-shadow:0 0 10px rgba(230,196,122,.35);}
+#topright{margin-left:auto; display:flex; gap:8px; flex-wrap:wrap;}
+#main{flex:1; display:grid; grid-template-columns:280px 1fr 300px; gap:10px; padding:10px 12px; min-height:0;}
+.col{min-height:0; display:flex; flex-direction:column; gap:10px;}
+.panel{background:var(--panel); border:1px solid var(--panel-line); border-radius:14px; backdrop-filter:blur(6px);
+  box-shadow:0 4px 24px rgba(0,0,0,.35), inset 0 0 30px rgba(126,232,201,.03); position:relative; overflow:hidden;}
+.panel::before{content:''; position:absolute; inset:0 0 auto 0; height:1px; background:linear-gradient(90deg, transparent, rgba(230,196,122,.5), transparent);}
+.panel-title{font-size:14px; letter-spacing:6px; color:var(--gold); padding:8px 12px 6px; text-align:center;
+  border-bottom:1px dashed rgba(126,232,201,.14); text-shadow:0 0 8px rgba(230,196,122,.3);}
+.scroll{overflow-y:auto; padding:8px; scrollbar-width:thin; scrollbar-color:rgba(126,232,201,.3) transparent;}
+.scroll::-webkit-scrollbar{width:6px;} .scroll::-webkit-scrollbar-thumb{background:rgba(126,232,201,.25); border-radius:3px;}
+/* ---------- left status ---------- */
+.stat{padding:3px 2px;}
+.stat .lab{display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-dim); letter-spacing:1px; margin-bottom:2px;}
+.stat .lab b{color:var(--ink); font-weight:normal; letter-spacing:0;}
+.bar{height:7px; border-radius:4px; background:rgba(255,255,255,.07); overflow:hidden; border:1px solid rgba(255,255,255,.05);}
+.bar i{display:block; height:100%; border-radius:4px; transition:width .5s ease; background:linear-gradient(90deg,#2fbfa4,#7ee8c9);}
+.bar.gold i{background:linear-gradient(90deg,#b98a3e,#e6c47a);}
+.bar.pur i{background:linear-gradient(90deg,#7d6bd8,#b9a6ff);}
+.bar.red i{background:linear-gradient(90deg,#a04343,#ff8d8d);}
+.bar.blue i{background:linear-gradient(90deg,#2f6fbf,#7ec8ff);}
+.stat .lab .num{color:var(--jade); font-size:12px;}
+.badges{display:flex; flex-wrap:wrap; gap:6px; padding:4px 2px;}
+.badge{font-size:11.5px; color:#cfe8e0; background:rgba(126,232,201,.08); border:1px solid rgba(126,232,201,.3);
+  padding:2px 8px; border-radius:999px; letter-spacing:1px;}
+.badge.dark{color:#cdb8e8; background:rgba(185,166,255,.07); border-color:rgba(185,166,255,.3);}
+.badge.gold{color:#f0dcae; background:rgba(230,196,122,.07); border-color:rgba(230,196,122,.32);}
+#itemList{display:flex; flex-direction:column; gap:4px;}
+.item{display:flex; justify-content:space-between; align-items:center; font-size:12.5px; padding:3px 6px; border-radius:6px;
+  background:rgba(255,255,255,.025); border:1px solid transparent; cursor:default;}
+.item:hover{border-color:rgba(126,232,201,.25); background:rgba(126,232,201,.06);}
+.item .nm{color:#dcefe7;} .item .ct{color:var(--jade); font-size:12px;}
+/* ---------- center story ---------- */
+#storyPanel{flex:1;}
+#story{overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px; padding:10px 12px; min-height:0;}
+#story .line{font-size:15px; line-height:1.85; letter-spacing:.6px; color:var(--ink); animation:fadein .5s ease;}
+#story .line.past{color:var(--ink-faint); font-size:13.5px;}
+#story .line .who{color:var(--gold); margin-right:6px;}
+#story .line.act{color:var(--jade);}
+#story .line.sys{color:var(--purple); font-size:13px;}
+#story .line.good{color:#a8f0d8;}
+#story .line.bad{color:#ffc0a8;}
+#story .line.tell{color:#cfc3ff;}
+@keyframes fadein{from{opacity:0; transform:translateY(6px);} to{opacity:1;}}
+#choices{padding:8px 12px 10px; border-top:1px dashed rgba(126,232,201,.16); min-height:0; overflow-y:auto;}
+.choice{display:block; width:100%; text-align:left; margin:6px 0; padding:9px 12px; font-size:14.5px; letter-spacing:1px; line-height:1.5;
+  color:var(--ink); background:rgba(126,232,201,.05); border:1px solid rgba(126,232,201,.28); border-radius:10px; transition:.16s;}
+.choice:hover{background:rgba(126,232,201,.16); border-color:var(--jade); box-shadow:0 0 14px rgba(126,232,201,.25); transform:translateX(3px);}
+.choice .hint{display:block; font-size:11.5px; color:var(--ink-faint); letter-spacing:.5px; margin-top:2px;}
+.choice.warn{border-color:rgba(255,141,141,.5);}
+.choice.warn:hover{background:rgba(255,141,141,.12); box-shadow:0 0 14px rgba(255,141,141,.2);}
+.choice.good{border-color:rgba(126,232,201,.5);}
+.choice.disabled{opacity:.45; pointer-events:none;}
+.actions-note{font-size:12px; color:var(--ink-faint); text-align:center; padding:4px;}
+/* ---------- right actions ---------- */
+#actPanel{flex:1; min-height:0;}
+#acts{overflow-y:auto; padding:6px; display:flex; flex-direction:column; gap:6px; min-height:0;}
+.act{display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:8px 10px; font-size:14px; letter-spacing:1px;
+  color:var(--ink); background:rgba(126,232,201,.04); border:1px solid rgba(126,232,201,.2); border-radius:9px; transition:.15s;}
+.act:hover{background:rgba(126,232,201,.13); transform:translateX(-2px);}
+.act .ic{width:26px; height:26px; flex:0 0 26px; display:flex; align-items:center; justify-content:center; font-size:17px;
+  background:rgba(255,255,255,.05); border-radius:7px;}
+.act .tx{flex:1;} .act .tx b{display:block; font-weight:normal; font-size:14px; letter-spacing:1px;}
+.act .tx span{font-size:11px; color:var(--ink-faint);}
+.act .tm{font-size:11px; color:var(--gold-deep);}
+.act.locked{opacity:.4;}
+#btkWrap{padding:8px;}
+#btk{width:100%; padding:11px; font-size:16px; letter-spacing:5px; color:#081018; border:none; border-radius:11px;
+  background:linear-gradient(120deg,#e6c47a,#7ee8c9); cursor:pointer; box-shadow:0 0 20px rgba(126,232,201,.35);
+  animation:pulse 1.8s infinite; display:none;}
+#btk:hover{filter:brightness(1.1);}
+@keyframes pulse{0%,100%{box-shadow:0 0 10px rgba(126,232,201,.25);}50%{box-shadow:0 0 26px rgba(126,232,201,.6);}}
+#storyPanel{display:flex; flex-direction:column;}
+#story{flex:1 1 auto; min-height:0;}
+#choices{flex:0 0 auto; max-height:44%;}
+#rightCol .panel{display:flex; flex-direction:column;}
+#rightCol .panel .panel-title{flex:0 0 auto;}
+#acts{flex:1 1 auto; min-height:0;}
+#btkWrap{flex:0 0 auto;}
+/* ---------- overlays ---------- */
+#veil{position:fixed; inset:0; z-index:40; background:rgba(5,8,20,.6); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center;}
+#veil.on{display:flex;}
+.modal{width:min(680px,94vw); max-height:86vh; overflow:auto; background:linear-gradient(180deg, rgba(22,34,64,.98), rgba(10,18,40,.98));
+  border:1px solid rgba(126,232,201,.35); border-radius:16px; padding:22px 26px; box-shadow:0 10px 60px rgba(0,0,0,.6), inset 0 0 60px rgba(126,232,201,.05);}
+.modal h2{text-align:center; color:var(--gold); letter-spacing:8px; font-size:22px; margin-bottom:14px; text-shadow:0 0 14px rgba(230,196,122,.4);}
+.modal h3{color:var(--jade); letter-spacing:3px; margin:12px 0 6px; font-size:15px;}
+.modal p{line-height:1.9; font-size:14.5px; color:#ddd9c8; margin:6px 0;}
+.modal small{color:var(--ink-faint);}
+.modal .close{display:block; margin:14px auto 0; padding:7px 22px; font-size:14px; letter-spacing:3px; color:var(--ink);
+  background:rgba(126,232,201,.1); border:1px solid rgba(126,232,201,.4); border-radius:8px;}
+.modal .close:hover{background:rgba(126,232,201,.22);}
+/* creation */
+#titleScreen{position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:radial-gradient(1000px 600px at 50% 0%, rgba(35,58,110,.4), transparent 60%), linear-gradient(165deg,#070b1e,#0c1734 55%,#081c2c);
+  overflow-y:auto;}
+#bigTitle{font-size:clamp(44px,9vmin,84px); letter-spacing:.18em; text-indent:.18em; color:transparent;
+  background:linear-gradient(180deg,#fff6d8 20%, #e6c47a 55%, #9a7a3f 90%); -webkit-background-clip:text; background-clip:text;
+  filter:drop-shadow(0 0 18px rgba(230,196,122,.35)); animation:titleFloat 5s ease-in-out infinite; text-align:center;}
+@keyframes titleFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+#subTitle{letter-spacing:.5em; text-indent:.5em; color:var(--jade); margin-top:4px; font-size:clamp(12px,2vmin,16px); opacity:.8;}
+#titleHint{position:absolute; bottom:18px; color:var(--ink-faint); font-size:13px; letter-spacing:2px;}
+#createBox{width:min(760px,94vw); background:linear-gradient(180deg, rgba(20,32,62,.92), rgba(8,16,36,.92));
+  border:1px solid rgba(126,232,201,.3); border-radius:18px; padding:20px 24px; margin:24px 0; box-shadow:0 8px 50px rgba(0,0,0,.5);}
+.field{display:flex; align-items:center; gap:10px; margin:10px 0;}
+.field label{color:var(--gold); letter-spacing:2px; font-size:15px; width:90px; flex:0 0 90px;}
+.field input[type=text]{flex:1; background:rgba(255,255,255,.05); border:1px solid rgba(126,232,201,.3); color:var(--ink);
+  font-family:var(--serif); font-size:16px; letter-spacing:2px; padding:7px 10px; border-radius:8px; outline:none;}
+.field input:focus{border-color:var(--jade); box-shadow:0 0 12px rgba(126,232,201,.2);}
+.optgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin:8px 0;}
+.opt{text-align:left; padding:10px; border-radius:10px; background:rgba(126,232,201,.04); border:1px solid rgba(126,232,201,.18); color:var(--ink); transition:.15s;}
+.opt:hover{border-color:var(--jade); background:rgba(126,232,201,.1);}
+.opt.sel{border-color:var(--gold); background:rgba(230,196,122,.1); box-shadow:0 0 14px rgba(230,196,122,.2);}
+.opt b{display:block; font-weight:normal; letter-spacing:2px; color:var(--gold); margin-bottom:3px;}
+.opt span{font-size:11.5px; color:var(--ink-dim); line-height:1.5;}
+#rootCard{margin:6px 0; padding:10px 12px; border-radius:10px; background:rgba(185,166,255,.05); border:1px dashed rgba(185,166,255,.35);}
+#rootCard .rn{color:var(--purple); letter-spacing:2px;}
+#createStart{display:block; margin:14px auto 0; padding:11px 44px; font-size:18px; letter-spacing:8px; color:#081018; border:none; border-radius:12px;
+  background:linear-gradient(120deg,#e6c47a,#7ee8c9); cursor:pointer; box-shadow:0 0 24px rgba(126,232,201,.35);}
+#createStart:hover{filter:brightness(1.1);}
+/* ending overlay */
+#endScreen{position:fixed; inset:0; z-index:70; display:none; align-items:center; justify-content:center; overflow-y:auto;
+  background:radial-gradient(900px 600px at 50% 110%, rgba(70,40,20,.5), transparent 60%), linear-gradient(170deg,#0b0a14,#14102a 60%,#1c1230);}
+#endScreen.on{display:flex;}
+#endCard{width:min(720px,94vw); text-align:center; padding:30px 28px; border:1px solid rgba(230,196,122,.4); border-radius:18px;
+  background:linear-gradient(180deg, rgba(28,22,46,.94), rgba(12,10,24,.95)); box-shadow:0 10px 70px rgba(0,0,0,.7);}
+#endTag{letter-spacing:.4em; color:var(--jade); font-size:13px; opacity:.85;}
+#endName{font-size:clamp(30px,6vmin,46px); letter-spacing:.2em; color:transparent; margin:10px 0 4px;
+  background:linear-gradient(180deg,#fff3cf,#e6c47a 60%,#b98a3e); -webkit-background-clip:text; background-clip:text;
+  filter:drop-shadow(0 0 16px rgba(230,196,122,.4));}
+#endEpithet{color:var(--ink-dim); letter-spacing:3px; font-size:14px; margin-bottom:16px;}
+#endStory{margin:10px auto; max-width:560px; font-size:15px; line-height:2.1; color:#e6dfca; text-align:left;}
+#endStats{margin:14px auto; max-width:460px; text-align:left; font-size:13.5px; color:var(--ink-dim); line-height:2;}
+#endStats b{color:var(--jade); font-weight:normal;}
+#endBtns{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:16px;}
+.endbtn{padding:9px 18px; font-size:14px; letter-spacing:2px; color:var(--ink); border-radius:9px; border:1px solid rgba(126,232,201,.4);
+  background:rgba(126,232,201,.08);}
+.endbtn:hover{background:rgba(126,232,201,.18);}
+.endbtn.primary{color:#081018; border:none; background:linear-gradient(120deg,#e6c47a,#7ee8c9); font-weight:bold;}
+/* gallery */
+.galGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin:6px 0 10px;}
+.gal{text-align:center; padding:9px 6px; border-radius:10px; border:1px solid rgba(126,232,201,.25); background:rgba(126,232,201,.04); font-size:13px; letter-spacing:1px;}
+.gal.lock{opacity:.35; border-style:dashed; border-color:rgba(255,255,255,.15); color:var(--ink-faint);}
+.gal .gname{color:var(--gold); font-size:13.5px;}
+.gal .gtype{display:block; font-size:10.5px; color:var(--ink-dim); margin-top:2px;}
+.achi{display:flex; justify-content:space-between; padding:5px 8px; margin:3px 0; border-radius:8px; background:rgba(255,255,255,.03); font-size:13px;}
+.achi .an{color:var(--ink); letter-spacing:1px;} .achi .ad{color:var(--ink-faint); font-size:11.5px;}
+.achi.done{border:1px solid rgba(230,196,122,.4); background:rgba(230,196,122,.07);}
+.achi.done .an{color:var(--gold);}
+/* toast */
+#toast{position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:90; display:flex; flex-direction:column; gap:6px; align-items:center; pointer-events:none;}
+.toast{background:rgba(14,22,46,.94); border:1px solid rgba(126,232,201,.4); color:var(--jade); padding:7px 16px; border-radius:999px;
+  font-size:13px; letter-spacing:1px; box-shadow:0 4px 20px rgba(0,0,0,.5); animation:toastIn .3s ease, toastOut .4s ease 2.6s forwards;}
+@keyframes toastIn{from{opacity:0; transform:translateY(-10px);} }
+@keyframes toastOut{to{opacity:0; transform:translateY(-8px);}}
+.shopRow{display:flex; align-items:center; gap:8px; padding:6px; border-bottom:1px dashed rgba(255,255,255,.07); font-size:13.5px;}
+.shopRow .sn{flex:1;} .shopRow .sp{color:var(--gold); width:90px; text-align:right;} .shopRow .si{width:60px;}
+.sbtn{padding:4px 10px; font-size:12.5px; color:var(--ink); background:rgba(126,232,201,.12); border:1px solid rgba(126,232,201,.4); border-radius:7px;}
+.sbtn:hover{background:rgba(126,232,201,.25);}
+.sbtn:disabled{opacity:.35; cursor:not-allowed;}
+.small-input{width:70px; background:rgba(255,255,255,.05); border:1px solid rgba(126,232,201,.3); color:var(--ink); font-family:var(--serif); font-size:14px; padding:3px 6px; border-radius:6px;}
+.chip{display:inline-block; padding:1px 8px; margin:0 4px 4px 0; border-radius:999px; font-size:12px; letter-spacing:1px; cursor:pointer;
+  background:rgba(126,232,201,.08); border:1px solid rgba(126,232,201,.3); color:#d9efe7;}
+.chip:hover{background:rgba(126,232,201,.2);}
+.moonline{color:var(--ink-faint); font-size:12px; text-align:center; padding:2px;}
+.hidden-egg{position:fixed; left:0; bottom:0; width:6px; height:6px; opacity:0; z-index:1; pointer-events:none;}
+#muteBtn,#speedBtn{width:auto;}
+@media (max-width:1180px){
+  #main{grid-template-columns:230px 1fr; grid-template-rows:auto 1fr;}
+  #rightCol{grid-column:1/-1; flex-direction:row; flex-wrap:wrap;}
+  #rightCol .panel{flex:1; min-width:220px;}
+  #acts{flex-direction:row; flex-wrap:wrap;}
+  .act{width:calc(50% - 4px);}
+}
+@media (max-width:760px){
+  body{overflow-y:auto;}
+  #app{height:auto; min-height:100dvh;}
+  #main{display:flex; flex-direction:column; overflow:visible; padding:8px 10px;}
+  .col{display:contents;}
+  #storyPanel{order:1; height:56vh; min-height:340px; flex:0 0 auto;}
+  #rightCol{order:2;}
+  #leftCol{order:3;}
+  #rightCol .panel{max-height:none;}
+  #acts{flex-direction:row; flex-wrap:wrap;}
+  .act{width:calc(50% - 4px);}
+  .panel{backdrop-filter:none;}
+  #topbar{gap:6px; padding:8px 10px; flex-wrap:wrap;}
+  .tbtn{padding:6px 10px; font-size:12.5px;}
+  #choices .choice{font-size:15.5px; padding:12px;}
+  .modal{padding:16px;}
+  #bigTitle{letter-spacing:.12em;}
+  #titleHint{position:static; margin:10px 12px 16px; text-align:center;}
+  #createBox{margin:14px 0;}
+  .optgrid{grid-template-columns:1fr 1fr;}
+}
+@media (max-width:420px){
+  .act{width:100%;}
+  .optgrid{grid-template-columns:1fr;}
+  #topname{font-size:14px;}
+}
+button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+</style>
+</head>
+<body>
+<div id="sky">
+  <div id="stars"></div>
+  <div id="clouds"></div>
+  <div id="moon" title="?"></div>
+  <div id="mountains"></div>
+  <div id="mist"></div>
+</div>
+
+<div id="app">
+  <div id="topbar">
+    <span class="top-seal">问道</span>
+    <span id="topname">——</span>
+    <span id="topbadge" class="top-seal"></span>
+    <span id="topyear" class="top-seal"></span>
+    <div id="topright">
+      <button class="tbtn" id="btnHelp">修行指引</button>
+      <button class="tbtn" id="btnEnds">结局图鉴</button>
+      <button class="tbtn" id="btnAchi">成就</button>
+      <button class="tbtn" id="btnSave">存档</button>
+      <button class="tbtn" id="btnLoad">读档</button>
+      <button class="tbtn" id="btnSound">音效</button>
+      <button class="tbtn" id="btnNew">重入轮回</button>
+    </div>
+  </div>
+
+  <div id="main">
+    <div class="col" id="leftCol">
+      <div class="panel" style="flex:0 0 auto">
+        <div class="panel-title">本命</div>
+        <div class="scroll" style="max-height:46vh">
+          <div id="stats"></div>
+          <div class="badges" id="badges"></div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1; min-height:120px">
+        <div class="panel-title">随身之物</div>
+        <div class="scroll" id="invPanel" style="max-height:34vh">
+          <div id="itemList"></div>
+          <div id="invEmpty" style="color:var(--ink-faint);font-size:12.5px;text-align:center;padding:8px">空空如也</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="storyPanel" style="flex:1">
+      <div class="panel-title" id="storyTitle">山中岁月</div>
+      <div class="scroll" id="story"></div>
+      <div id="choices"></div>
+    </div>
+
+    <div class="col" id="rightCol">
+      <div class="panel" style="flex:1">
+        <div class="panel-title">修行</div>
+        <div id="btkWrap"><button id="btk">冲 关 破 境</button></div>
+        <div id="acts"></div>
+        <div class="actions-note">岁月如流，每次行动将消耗光阴。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="veil"><div id="veilBox" class="modal"></div></div>
+
+<div id="toast"></div>
+
+<div id="titleScreen">
+  <div id="bigTitle">问 道 长 生</div>
+  <div id="subTitle">— 一 念 成 仙 · 一 念 堕 魔 · 皆 在 汝 心 —</div>
+  <div id="createBox">
+    <div class="field"><label>道号</label><input type="text" id="inpName" maxlength="8" placeholder="为自己取一个名字…"></div>
+    <h3 style="color:var(--jade);letter-spacing:3px;margin:14px 0 2px;font-size:15px">出身</h3>
+    <p style="font-size:12.5px;color:var(--ink-faint);margin:2px 0 6px">不同的出身，会有不同的际遇与终点。</p>
+    <div class="optgrid" id="originGrid"></div>
+    <h3 style="color:var(--jade);letter-spacing:3px;margin:12px 0 2px;font-size:15px">灵根</h3>
+    <p style="font-size:12.5px;color:var(--ink-faint);margin:2px 0 6px">天资乃先天所定，亦可后天逆改。</p>
+    <div id="rootCard"></div>
+    <button class="tbtn" id="btnReroll" style="margin:2px auto 0;display:block">再窥天机（重掷灵根）</button>
+    <button id="createStart">踏入仙途</button>
+  </div>
+  <div id="titleHint">小小提示：点击明月九次，或有奇遇 · 键入秘语，或见机缘</div>
+</div>
+
+<div id="endScreen">
+  <div id="endCard">
+    <div id="endTag">—— 一 世 终 局 ——</div>
+    <div id="endName">结局</div>
+    <div id="endEpithet"></div>
+    <div id="endStory"></div>
+    <div id="endStats"></div>
+    <div id="endBtns">
+      <button class="endbtn primary" id="btnAgain">转 世 再 来</button>
+      <button class="endbtn" id="btnEndGallery">结局图鉴</button>
+      <button class="endbtn" id="btnEndHome">回到山门</button>
+    </div>
+  </div>
+</div>
+
+<div class="hidden-egg" id="egg"></div>
+
+
+<script>
+'use strict';
+/* ================= 数据定义 ================= */
+const ORIGINS = [
+ {id:'sansan', ic:'🏔️', name:'山野散修', desc:'父母双亡，自小被山间采药翁收养。无门无派，逍遥自在，一身道行全靠自己摸索，胜在心思通透、福缘不浅。', fx:['ls +80','wu +4','jiyuan +8','gongfa jichu','flag free']},
+ {id:'mingmen', ic:'⛩️', name:'名门弟子', desc:'青云宗外门弟子，根正苗红，每月有月例灵石，师门长辈照拂。然门规森严，一言一行皆在他人眼下。', fx:['ls +300','wu +5','mood +5','item hufu 1','gongfa xuanmen','sect qingyun']},
+ {id:'modao', ic:'🌑', name:'魔道遗孤', desc:'幼年时家族被正道所灭，怀揣一卷残缺魔功流落江湖。恨意与执念刻入骨髓，却也让你比旁人更早窥见力量的门径。', fx:['ls +150','wu +5','mo +18','karma -6','gongfa moxue','flag demonline']},
+ {id:'fanwu', ic:'⚔️', name:'沙场老卒', desc:'凡人武将，从尸山血海里滚过几遭，气血充盈如牛。虽不通仙法，却有一股百折不挠的刚烈心性。', fx:['ls +120','hp +25','wu +2','life +25','gongfa waijia','flag bodypath']},
+ {id:'yaotong', ic:'🌿', name:'药园童子', desc:'自幼在药王谷打理灵药，闻着丹香长大。虽资质平平，却天生一双识药慧眼，与草木灵性格外亲近。', fx:['ls +60','jiyuan +10','wu +3','item lingcao 4','item bainian 1','gongfa jichu','flag alchemy']}
+];
+const ROOTS = [
+ {id:'za', w:26, mult:0.72, name:'杂灵根', cl:'灰', desc:'五行驳杂如泥沙，修行事倍功半。然天下凡人，十之八九皆如此。'},
+ {id:'san', w:24, mult:0.86, name:'三灵根', cl:'青', desc:'金木土三灵根，中人之姿，尚可一窥仙途。'},
+ {id:'shuang', w:20, mult:1.0, name:'双灵根', cl:'碧', desc:'水木相生，资质中上，宗门内也算可造之材。'},
+ {id:'wei', w:9, mult:0.6, name:'伪灵根', cl:'灰', desc:'灵根驳杂近乎断绝，修行极缓，然若有缘得洗髓丹，尚可逆天改命。'},
+ {id:'dan', w:11, mult:1.35, name:'单灵根', cl:'金', desc:'五行归一，纯净无瑕，百年难遇之资。'},
+ {id:'lei', w:5, mult:1.55, name:'变异雷灵根', cl:'紫', desc:'雷者，天罚之威。资质绝顶，御雷之人亦易遭雷妒，天劫更为暴烈。', trib:0.2},
+ {id:'bing', w:5, mult:1.55, name:'变异冰灵根', cl:'霜', desc:'寒冰入骨，心性愈冷则道行愈进。', mood:0.1},
+ {id:'tian', w:3, mult:2.0, name:'天灵根', cl:'金', desc:'先天道体，钟灵毓秀，万中无一。修行一日千里，天劫亦为之退避。', trib:-0.15}
+];
+const REALMS = [
+ {name:'凡人', trib:null, life:0, desc:'凡尘浊骨，尚未窥仙门。'},
+ {name:'炼气', trib:null, life:60, desc:'引气入体，洗髓伐毛，寿逾百五。'},
+ {name:'筑基', trib:null, life:150, desc:'筑就道基，脱胎换骨，寿三百载。'},
+ {name:'金丹', trib:'small', life:500, desc:'一粒金丹吞入腹，我命由我不由天。寿八百。'},
+ {name:'元婴', trib:'mid', life:1500, desc:'元婴出窍，神游太虚，寿逾两千。'},
+ {name:'化神', trib:'big', life:3500, desc:'炼神返虚，一念千里，寿五千载。'},
+ {name:'炼虚', trib:'huge', life:9000, desc:'洞虚合道，超脱凡俗，寿近万年。'},
+ {name:'大乘', trib:'final', life:50000, desc:'大道将成，只待最后一劫，便可羽化登仙。'}
+];
+const GONGFA = [
+ {id:'jichu', name:'基础吐纳法', mult:1.0, desc:'山野粗浅的引气法门，胜在稳妥。'},
+ {id:'waijia', name:'蛮牛锻体诀', mult:0.95, desc:'以气血养道基的炼体法门，每修行一分，筋骨便强健一分。', hp:true},
+ {id:'xuanmen', name:'玄门正法', mult:1.5, desc:'青云宗嫡传功法，中正平和，循序渐进。'},
+ {id:'moxue', name:'噬血魔典', mult:1.9, desc:'残缺魔功，吸噬血气以壮己身。进境奇快，然每用一分，魔障便深一分。', mo:true},
+ {id:'taiji', name:'太乙青木诀', mult:1.75, desc:'上古木属仙诀，生机绵长，疗伤养寿皆有奇效。'},
+ {id:'tiangang', name:'天罡剑诀', mult:1.85, desc:'锋芒毕露的攻伐剑典，习之者锐气无双，可开天门。', sword:true},
+ {id:'wanmo', name:'万古魔典', mult:2.4, desc:'魔道至高典籍，逆天而行。修之者进境骇人，然心魔如影随形。', mo:true},
+ {id:'xiandao', name:'仙道玉简', mult:2.25, desc:'疑似上界仙人遗留的玉简，字字珠玑，直指大道。'}
+];
+const ITEMS = {
+ lingcao:{name:'灵草', ic:'🌱', cat:'材', desc:'最普通的聚灵草药，炼丹入门之物。', price:12},
+ bainian:{name:'百年参', ic:'🌿', cat:'材', desc:'药龄百年的老参，蕴含浓郁灵气。', price:55},
+ zhuguo:{name:'朱果', ic:'🍒', cat:'材', desc:'朱红如血的灵果，传闻食之可增寿。', price:160},
+ shouhe:{name:'兽核', ic:'🔮', cat:'材', desc:'妖兽体内凝结的精华。', price:140},
+ kuang:{name:'灵矿', ic:'🪨', cat:'材', desc:'蕴含灵气的矿石，可炼器。', price:90},
+ heal:{name:'疗伤丹', ic:'💊', cat:'丹', desc:'内服可活血生肌，疗治内外伤。', price:40, use:'heal'},
+ juling:{name:'聚灵丹', ic:'🟢', cat:'丹', desc:'服下后灵力奔涌，可助长修为。', price:120, use:'juling'},
+ qingxin:{name:'清心丹', ic:'🔵', cat:'丹', desc:'宁心静气，驱散心魔杂念。', price:90, use:'qingxin'},
+ peiyuan:{name:'培元丹', ic:'🟠', cat:'丹', desc:'固本培元，温养气血。', price:150, use:'peiyuan'},
+ pozhao:{name:'破障丹', ic:'🟣', cat:'丹', desc:'破境时服之，可增加渡劫成功之机。', price:360, use:'pozhao'},
+ yanshou:{name:'延寿丹', ic:'🔴', cat:'丹', desc:'夺天地造化以续命，可延寿二十载。', price:700, use:'yanshou'},
+ xisui:{name:'洗髓丹', ic:'⚪', cat:'丹', desc:'易经洗髓，逆改资质，可提升悟性。', price:1200, use:'xisui'},
+ hufu:{name:'护体灵符', ic:'🧧', cat:'宝', desc:'危急时自动护主，可挡一次致命之厄。', price:300},
+ bileizhu:{name:'避雷珠', ic:'🔮', cat:'宝', desc:'上古异宝，可消弭天劫三分威力。', price:1600},
+ qingfeng:{name:'青锋剑', ic:'🗡️', cat:'宝', desc:'剑修梦寐以求的灵剑，锋锐无匹。', price:1500},
+ juzhen:{name:'聚灵阵盘', ic:'🌀', cat:'宝', desc:'闭关时置于身周，可聚拢灵气，修行事半功倍。', price:1200},
+ shehunling:{name:'摄魂铃', ic:'🔔', cat:'宝', desc:'摄人魂魄的魔道法器，持之者可慑服低阶修士。', price:900, mo:true},
+ dingshi:{name:'替死玉符', ic:'🛡️', cat:'宝', desc:'以精血祭炼的救命之物，可替主人挡一次死劫。', price:2600},
+ longzhu:{name:'龙珠', ic:'🐉', cat:'秘', desc:'传说中神龙遗落的宝珠，温润如玉，内中似有龙吟。', price:99999, secret:true},
+ muyu:{name:'神秘木匣', ic:'🎁', cat:'秘', desc:'坊市地摊上淘来的旧木匣，不知内藏何物。', price:66, box:true}
+};
+const RECIPES = [
+ {id:'heal', name:'疗伤丹', need:{lingcao:1}, learn:'初'},
+ {id:'juling', name:'聚灵丹', need:{lingcao:1,bainian:1}, learn:'初'},
+ {id:'qingxin', name:'清心丹', need:{lingcao:2}, learn:'初'},
+ {id:'peiyuan', name:'培元丹', need:{bainian:1,zhuguo:1}, learn:'中'},
+ {id:'pozhao', name:'破障丹', need:{zhuguo:1,shouhe:1}, learn:'中'},
+ {id:'yanshou', name:'延寿丹', need:{zhuguo:2,shouhe:1}, learn:'高'},
+ {id:'xisui', name:'洗髓丹', need:{zhuguo:3,shouhe:2,kuang:1}, learn:'高'}
+];
+const PETS = {
+ cat:{name:'灵猫·汤圆', ic:'🐱', desc:'不知从哪窜来的白猫，通体灵光，最喜蹭人。', fx:{jiyuan:4,mood:1}},
+ xuangui:{name:'玄龟·小玄', ic:'🐢', desc:'深潭里捞起的墨绿小龟，背纹隐现先天卦象。', fx:{life:0.8, mood:1}},
+ qingluan:{name:'青鸾·鸾儿', ic:'🦚', desc:'九天青鸾的幼鸟，翎羽流光，可载人遨游。', fx:{jiyuan:8, luck:true}},
+ hu:{name:'灵狐·阿九', ic:'🦊', desc:'九尾灵狐的幼崽，通人性，善解人意。', fx:{mood:3}},
+ chan:{name:'金蟾·旺财', ic:'🐸', desc:'三足金蟾，招财纳福的祥瑞之物。', fx:{money:0.12}},
+ wolf:{name:'狼王·灰影', ic:'🐺', desc:'荒野中与你结缘的灰狼，忠心耿耿，护你周全。', fx:{jiyuan:3, mood:1}}
+};
+const PARTNERS = {
+ qingyue:{name:'苏清月', ic:'🌙', desc:'青云宗内门女修，清冷如月。'},
+ lanxin:{name:'柳兰心', ic:'🌸', desc:'坊市医馆的温柔医女，一双素手能起死回生。'},
+ moying:{name:'夜影', ic:'🌹', desc:'魔道中赫赫有名的妖女，亦正亦邪。'}
+};
+const SECTS = {
+ qingyun:{name:'青云宗', kind:'正道', desc:'名门正派，执剑卫道。'},
+ tiansha:{name:'天煞教', kind:'魔道', desc:'魔道巨擘，无法无天。'},
+ wanbao:{name:'万宝楼', kind:'中立', desc:'以商入道，灵石通天。'}
+};
+const ACTIONS = [
+ {id:'cultivate', ic:'🧘', name:'静坐修炼', tm:1, desc:'调息吐纳，引灵气入体', fx:['prog 1','mood -1'], need:['realm1']},
+ {id:'seclude', ic:'🔥', name:'闭关苦修', tm:3, desc:'闭关不出，全力冲击瓶颈（修为大进，略耗心境）', fx:['prog 2.4','mood -5'], need:['realm1']},
+ {id:'comprehend', ic:'📜', name:'参悟道法', tm:1, desc:'静坐悟道，打磨道心，偶有所得', fx:['prog 0.35','mood 3','wuC 0.14']},
+ {id:'walk', ic:'🚶', name:'下山历练', tm:2, desc:'行走红尘，体察人间百态，或有际遇', fx:['mood 2','ls 25','evWalk 0.85']},
+ {id:'explore', ic:'🗺️', name:'秘境探险', tm:1, desc:'入深山古地寻找机缘，富贵险中求', fx:['hp -3','evExplore 1']},
+ {id:'market', ic:'🏮', name:'坊市采买', tm:0, desc:'去坊市逛逛，买些丹药法宝', fx:['shop']},
+ {id:'refine', ic:'⚗️', name:'炼丹制药', tm:1, desc:'以灵草药材炼制丹药（需丹方与材料）', fx:['refine']},
+ {id:'rest', ic:'🌙', name:'静养调息', tm:1, desc:'放下修行，好好休养', fx:['hp 20','mood 4']},
+ {id:'social', ic:'🍵', name:'论道访友', tm:1, desc:'与故友新朋品茶论道，交流心得', fx:['mood 3','social']},
+ {id:'sect', ic:'⛩️', name:'宗门事务', tm:2, desc:'为宗门出力，换取贡献与资源', fx:['sect']},
+ {id:'wander', ic:'🌊', name:'云游四方', tm:3, desc:'远走天涯，阅尽山河，福缘自在其中', fx:['mood 2','evWander 1','hp -2']},
+ {id:'sleep', ic:'😴', name:'沉睡悟道', tm:50, desc:'效仿先贤大梦万古，一梦百年，或可大彻大悟', fx:['sleep'], need:['realm6']},
+ {id:'found', ic:'🏛️', name:'开宗立派', tm:10, desc:'寻一处灵山福地，开宗立派，教化后人', fx:['found'], need:['realm2']},
+ {id:'giveup', ic:'🍂', name:'金盆洗手', tm:0, desc:'放下长生执念，寻个归宿，就此了此余生', fx:['giveup'], need:['realm1']}
+];
+
+/* ================= 事件池（上） ================= */
+const EVENTS = [
+ {id:'first_qi', min:0, once:true, type:'any', w:0, auto:true,
+  text:'这一夜，你于山巅静坐，忽觉天地灵气如百川归海，争相涌入四肢百骸。耳畔仿佛响起一声钟鸣，眼前豁然开朗——这便是引气入体！',
+  choices:[{t:'顺势行功，一气呵成', cls:'good', fx:['prog 100']},{t:'稳扎稳打，徐徐图之', fx:['prog 45','mood 3']}]},
+ {id:'old_man', min:0, w:9, type:'any', once:true, cond:function(){return S.age<50;},
+  text:'山道上，你遇见一位衣衫褴褛的乞者。他忽然抬头，浑浊的双目闪过一丝精光，笑道：「小娃娃，老夫观你骨相清奇，可愿听我讲一段故事？」',
+  choices:[{t:'恭敬聆听', hint:'对方恐怕来历不凡', fx:['chance 0.5|jiyuan 12|karma 2','chance 0.5|mood -3'], log:'老人讲了个荒诞不经的故事，末了在你眉心一点，飘然而去。你似有所悟。'},
+           {t:'匆匆赶路，不多理会', hint:'仙缘虽好，谨防有诈', fx:['jiyuan 2'], log:'你心中记挂前程，并未驻足。走出百步再回头，那乞者已不见了踪影。'}]},
+ {id:'wolf', min:0, w:10, type:'walk', cond:function(){return S.realm<2;},
+  text:'路过荒野，你听见枯草深处传来一声幼兽的呜咽。拨开草丛，却见一头灰狼倒在血泊中，身下护着三只嗷嗷待哺的狼崽。狼母望着你，眼中满是不舍与恳求。',
+  choices:[{t:'悉心救治狼母', cls:'good', fx:['karma 4','chance 0.35|pet wolf'], log:'你为狼母包扎伤口，日日送来吃食。月余后狼母伤愈，带着狼崽远远朝你三拜，从此林间多了一群护你周全的灰影。'},
+           {t:'带走一只狼崽抚养', fx:['pet wolf','karma 1'], log:'你抱起最瘦小的那只狼崽。它在你怀里打了个哆嗦，从此成了你形影不离的伙伴。'},
+           {t:'假装没看见，径直离开', fx:['karma -2','mood -3'], log:'弱肉强食，本就是天地法则。你狠下心转身离去，却总觉得那双狼眼在身后望着你。'}]},
+ {id:'spr_spring', min:0, w:12, type:'explore', cond:function(){return S.age<90;},
+  text:'深谷之中，你发现一眼汩汩流淌的灵泉。泉水清澈见底，泉边石壁上生着一株含苞欲放的九叶奇花，幽香袭人，四周灵气竟比别处浓郁数倍。',
+  choices:[{t:'饮下灵泉，就地炼化', fx:['chance 0.45|prog 18|life 3','chance 0.55|prog 6'], log:'灵泉入腹，如饮琼浆。你盘膝炼化，只觉四肢百骸都浸在暖融融的灵气里。'},
+           {t:'采摘奇花，留待炼丹', cls:'good', fx:['get zhuguo 1','get bainian 1'], log:'你小心翼翼以玉匣收好奇花，又记下此地方位，准备日后常来。'},
+           {t:'在泉边结庐参悟数日', fx:['wuC 0.5','mood 5','prog 4'], log:'你在泉边一坐便是数日，任泉水打湿衣袂。灵台前所未有的清明，一些修行上的滞涩之处竟豁然开朗。'}]},
+ {id:'ruins', min:1, w:9, type:'explore',
+  text:'乱石堆中，你发现一座半塌的古修士洞府。石门半掩，蛛网尘封，门上依稀刻着「余窥大道而不得门，特留机缘于此，有缘者得之」字样。',
+  choices:[{t:'入内一探', hint:'古修遗府，或有重宝', fx:['chance 0.3|item longzhu','chance 0.25|item qingfeng','chance 0.25|gongfa xiandao','chance 0.2|hp -25'], log:'你推开石门踏入洞府，机关与机缘并存。待你灰头土脸地出来时，怀里已多了些了不得的东西。'},
+           {t:'小心为上，只在门口观望', fx:['jiyuan 3'], log:'你生性谨慎，只在门口拾了几枚散落的灵石便离去了。'}]},
+ {id:'bandit', min:0, w:11, type:'walk',
+  text:'官道之上，一伙悍匪正劫掠商队，哭喊声震天。为首的匪首满脸横肉，正狞笑着将刀架在一个老妇颈上。',
+  choices:[{t:'出手救人，惩恶扬善', cls:'good', fx:['karma 5','chance 0.7|ls 90','chance 0.3|hp -12'], log:'你大喝一声跃入战团。一番苦战后匪众溃散，商队主人千恩万谢，硬塞给你一袋灵石。'},
+           {t:'暗中相助，不露真容', fx:['karma 3','jiyuan 2'], log:'你蒙面出手，三两下打发了匪徒便飘然而去。深藏功与名，倒也别有滋味。'},
+           {t:'多一事不如少一事', fx:['karma -3','mood -2'], log:'你绕道而行，身后哭喊渐远。这修仙界中，各人自有各人的命数。'}]},
+ {id:'fish', min:0, w:8, type:'walk', cond:function(){return S.realm<3;},
+  text:'溪边垂钓的老翁钓起一尾通体金鳞的怪鱼，鱼眼竟似人目，直勾勾望着你，口吐人言：「放我一命，赠你一场造化。」',
+  choices:[{t:'放它归水', cls:'good', fx:['karma 5','chance 0.5|get longzhu'], log:'你割断鱼线，将金鳞鱼放回溪中。它甩尾潜入深潭前，回头望了你一眼，口中吐出一枚温润的珠子。'},
+           {t:'出价买下，细细端详', fx:['ls -80','chance 0.5|get zhuguo 1'], log:'你花光盘缠买下怪鱼，翻来覆去研究半天，它却只是一尾寻常金鲤，你只觉血亏。'},
+           {t:'请老翁烹了下酒', fx:['karma -5','hp 10','mood -4'], log:'鱼肉入口鲜美异常，你大快朵颐。可夜里总梦见那双鱼眼，幽怨地望着你。'}]},
+ {id:'tea', min:0, w:9, type:'any', cond:function(){return S.realm<4;},
+  text:'一间深山茶寮中，青衣老者邀你对坐。他为你斟上一盏茶，茶汤澄碧，异香扑鼻：「此茶名「忘忧」，饮之可忘却心中执念，小友可愿一试？」',
+  choices:[{t:'坦然饮下', hint:'了却凡尘，道心更坚', fx:['mood 8','chance 0.3|karma 2'], log:'茶汤入喉，这些年的执念、烦忧竟如冰雪消融。你长舒一口气，灵台从未如此澄澈。'},
+           {t:'婉言谢绝，只求论道', fx:['mood 4','wuC 0.3'], log:'你与老者畅谈三日三夜，从人间烟火聊到天道循环。临别时老者大笑：「心有所执，方是人；无执无念，是谓仙。小友已得三分真意。」'},
+           {t:'问老者可还有更好的茶', fx:['chance 0.2|get zhuguo 1','chance 0.8|mood -2'], log:'老者哈哈大笑：「贪心不足蛇吞象！」袖中飞出几枚朱果算是点化，转瞬不见了踪影。'}]},
+ {id:'beggar_secret', min:0, w:7, type:'walk',
+  text:'城隍庙前，一个断了腿的乞丐忽然拉住你的衣角，压低声音：「公子，我看你印堂发亮，是修仙的苗子。我这里有半卷上古功法，只卖你三十两……不，三十灵石。」他从怀里摸出一卷泛黄的帛书，墨迹淋漓，竟似新写。',
+  choices:[{t:'买下看看', fx:['ls -30','chance 0.6|gongfa wanmo','chance 0.4|lose ls 0'], log:'帛书入手，你展开一瞧，竟真是失传已久的魔道功法！乞丐已一瘸一拐地消失在人群中。'},
+           {t:'断然拒绝', fx:['mood 2'], log:'你摇摇头。这年头，地摊货也敢自称上古功法了？'},
+           {t:'反手举报给城中修士', cls:'good', fx:['karma 3'], log:'你唤来巡城修士，那乞丐见势不妙撒腿就跑——腿竟也不瘸了。'}]},
+ {id:'sword_hermit', min:1, w:7, type:'any', once:true, cond:function(){return !S.flags.sword;},
+  text:'竹林深处，一位独臂剑客正以竹代剑，舞得漫天竹叶纷飞。见你驻足，他朗声道：「小友可懂剑？」',
+  choices:[{t:'恳请前辈指点剑道', hint:'或可得传剑法', fx:['chance 0.7|gongfa tiangang','chance 0.3|mood -5'], log:'独臂剑客打量你片刻，忽然一笑：「也罢，这剑诀与你有缘。」说着将一段口诀打入你识海。你只觉周身剑气纵横，锋芒毕露。'},
+           {t:'摇头说自己不懂剑', fx:['mood 4','wuC 0.2'], log:'「不懂剑，好啊。」剑客笑道，「懂剑之人，一辈子都在追剑。不懂剑，才可能让剑追你。」言罢飘然而去。'}]},
+ {id:'dream_old', min:1, w:6, type:'sleep', cond:function(){return S.realm>=4;},
+  text:'闭关之中，你忽然神游太虚，来到一片混沌未开的天地。一位白发道人盘坐虚空，似在等你：「小友，你可知「道」字如何写？」',
+  choices:[{t:'答：首走之，即是道', fx:['mood 12','wuC 0.8','prog 12'], log:'白发道人抚掌大笑：「善！道在脚下，不在天上。你且去吧。」你骤然惊醒，只觉灵台通明，修为竟精进不少。'},
+           {t:'答：道可道，非常道', fx:['mood 8','wuC 0.5'], log:'道人含笑不语，化作点点灵光消散。你回味良久，若有所得。'},
+           {t:'长跪不起，求道长收我为徒', fx:['mood -8'], log:'道人摇头：「求来的道，不是你的道。」话音未落，你已被踢回肉身，心中怅然若失。'}]},
+ {id:'market_haggle', min:0, w:9, type:'market',
+  text:'坊市的摊主是个精明的胖修士，见你面生，笑眯眯地报了个虚高价：「这位道友，此物与你有缘，一口价如何？」',
+  choices:[{t:'施展三寸不烂之舌砍价', hint:'嘴皮子也是本事', fx:['chance 0.5|ls 60','chance 0.5|mood -4'], log:'一番唇枪舌剑，你最终心满意足地省下一笔灵石。胖修士哭丧着脸：「道友，你比我还会做生意！」'},
+           {t:'豪爽地照价付钱', hint:'结个善缘', fx:['ls -60','jiyuan 4'], log:'你出手阔绰，胖修士大喜过望，悄悄告诉你一个坊市里的隐秘消息。'},
+           {t:'只逛不买', fx:['mood 2'], log:'你闲庭信步逛了一圈，看看热闹，倒也自在。'}]},
+ {id:'thunder_night', min:1, w:6, type:'any',
+  text:'暴雨如注，惊雷震天。你于山巅石室中观雷，忽见一道紫电劈开夜幕，正中崖畔一株焦黑古木。雷光过处，古木竟萌发新芽，翠绿欲滴。',
+  choices:[{t:'冒雨观雷悟道', hint:'雷者，天威也', fx:['mood 6','chance 0.4|wuC 0.6','chance 0.4|prog 8','chance 0.2|hp -10'], log:'你凝望雷光直至天明，隐约触摸到一丝毁灭与新生交织的天地至理。'},
+           {t:'采下雷击木的新芽', fx:['get bainian 1'], log:'雷击木的新芽饱含生机，是炼制培元丹的绝佳材料。'},
+           {t:'缩回石室，安然睡去', fx:['mood 3'], log:'雷雨声中，你睡得格外安稳。'}]},
+ {id:'fox_spirit', min:0, w:7, type:'walk',
+  text:'夜宿荒庙，你听见庙外传来女子低低的啜泣声。推门一看，月光下一位白衣女子正伏在墓碑前哭泣，衣袂飘飘，不似凡人。她抬起泪眼：「公子，妾身迷了路，可否借宿一晚？」',
+  choices:[{t:'正气凛然，请她进来', fx:['chance 0.5|pet hu','chance 0.5|mood 5'], log:'翌日清晨，白衣女子已不见踪影，榻前却蹲着一只通体雪白的小狐狸，正歪头冲你眨眼。'},
+           {t:'婉言谢绝，闭门不出', fx:['mood 2','jiyuan 1'], log:'你紧闭庙门，心中默念清心咒。次日出门，门前放着一枝犹带露水的白梅。'},
+           {t:'暗中戒备，试探来历', fx:['wuC 0.3','chance 0.3|karma 2'], log:'你以言语试探，那女子应对如流，不露破绽。你始终未能看透她，却也未受其害。'}]},
+ {id:'sect_trial', min:1, w:7, type:'sect', cond:function(){return S.sect==='qingyun';},
+  text:'宗门大殿传来消息：青云宗三年一度的试炼即将开始，胜者可得宗门秘传功法《太乙青木诀》与丰厚赏赐。你作为弟子，亦有资格参加。',
+  choices:[{t:'报名参加试炼', hint:'宗门扬名之机', fx:['chance 0.5|gongfa taiji','chance 0.3|ls 200','chance 0.2|hp -20'], log:'试炼凶险，你在同门中脱颖而出，最终笑到了最后。掌门亲自将秘传功法授予你，赞许道：「后生可畏！」'},
+           {t:'以修行要紧为由推辞', fx:['mood 3'], log:'你安心闭关，不去争那虚名。倒也有几分淡泊明志的意味。'},
+           {t:'为同门师兄助阵', fx:['karma 2','chance 0.3|ls 50'], log:'你全力相助，师兄成功夺魁，对你感激不尽，此后处处照拂于你。'}]},
+ {id:'tomb', min:1, w:7, type:'explore',
+  text:'深山地底，你发现一座阴气森森的古墓。墓门上刻着诡异的符文，隐隐传来锁链拖拽之声。墓道深处，似乎封印着什么了不得的东西。',
+  choices:[{t:'转身离开，不碰为妙', fx:['mood 3','jiyuan 1'], log:'君子不立危墙之下。你果断离开，只当今日没来过。'},
+           {t:'冒险深入，一探究竟', fx:['chance 0.35|get shehunling','chance 0.3|hp -30','chance 0.2|prog 15','chance 0.15|mo 12'], log:'墓中机关重重，你九死一生。最终你带出了一件诡异法器，代价是身上多了几道深可见骨的伤口，与一缕若有若无的阴寒之气。'},
+           {t:'记下方位，来日再探', fx:['jiyuan 5'], log:'你留了个记号便退走了。冥冥中你觉得，此地与你的缘分未尽。'}]},
+ {id:'sick_village', min:0, w:8, type:'walk', cond:function(){return S.realm>=1;},
+  text:'路过一个山村，你发现村中瘟疫横行，尸横遍野，村民哀嚎不止。村口老族长颤巍巍跪在你面前：「仙长，求您救救我们吧！」',
+  choices:[{t:'以灵力为村民驱除疫气', cls:'good', fx:['karma 8','hp -15','chance 0.4|life 2'], log:'你耗尽灵力，昼夜不停地为村民祛病。七日后疫气尽除，全村跪谢你的大恩。你虽元气大伤，却觉心头前所未有的熨帖。'},
+           {t:'留下几枚丹药便走', fx:['karma 3','lose heal 1'], log:'你赠出丹药，言明自己能力有限，便匆匆离去。'},    
+           {t:'凡人命数，自有天定', fx:['karma -4','mo 3'], log:'你摇摇头，转身离去。身后哭声渐远，你告诉自己：这与你无关。'}]},
+ {id:'alchemist', min:0, w:6, type:'any', cond:function(){return S.realm>=1 && !S.flags.alchMaster;},
+  text:'路上你偶遇一位鹤发童颜的丹道大师，他正为炼废一炉丹药而捶胸顿足，满地皆是焦黑的药渣。见你驻足，他眼睛一亮：「小友，可愿做老夫的烧火童子？管吃管住，还教你炼丹！」',
+  choices:[{t:'欣然应允，侍奉左右', cls:'good', fx:['learn pozhao','learn yanshou','wuC 0.4','flag alchMaster','chance 0.4|wu 2'], log:'你在丹炉旁打杂三月，耳濡目染之下，竟也偷师到几门上乘丹方。大师临别赠你一句：「炼丹如炼心，火候到了，自然成丹。」'},
+           {t:'婉拒，但求购丹方', fx:['ls -300','learn yanshou'], log:'你花重金买下一张延寿丹方，大师摇摇头：「年轻人，买来的终究不是自己的。」'},
+           {t:'不感兴趣，继续赶路', fx:['jiyuan -2'], log:'你错过了一场机缘而不自知。'}]},
+ {id:'swamp_demon', min:1, w:6, type:'explore',
+  text:'瘴气弥漫的沼泽深处，你听见一声虚弱的呻吟。循声望去，一个浑身是血的修士正靠在一株枯树下，胸口插着一柄漆黑短刃，伤口处黑气缭绕。他艰难地抬头：「救我……我是……天煞教的人……必有重谢……」',
+  choices:[{t:'拔刀救人', fx:['chance 0.5|ls 300','chance 0.3|karma -3','chance 0.2|mo 6'], log:'你费尽心力为其疗伤。那人醒来后丢给你一个储物袋，冷冷道：「今日之恩，他日必还。」言罢化作黑烟离去。袋中灵石不少，却隐隐透着一股血腥气。'},
+           {t:'乘人之危，取其财物', fx:['ls 200','mo 8','karma -8'], log:'你取走他的储物袋，又补上一记，免得他日后寻仇。荒野之中，无人知晓。'},
+           {t:'救他，但索要报酬', fx:['ls 150','karma 2'], log:'你为其疗伤后明码标价收了诊金。那人倒也爽快，丢下灵石便走。'}]},
+ {id:'peach', min:1, w:3, type:'explore', once:true, cond:function(){return !S.flags.peach;},
+  text:'峭壁之上，你竟发现一株蟠桃树！树上结着一枚粉嫩欲滴的仙桃，异香飘出十里。传说中，食蟠桃者可立地成仙，寿与天齐——只是，树下盘着一条吐着信子的青鳞巨蟒。',
+  choices:[{t:'拼了！与巨蟒缠斗夺桃', hint:'富贵险中求', fx:['chance 0.5|eat peach','chance 0.5|hp -50','flag peach'], log:'一场恶斗惊天动地。最终你浑身浴血地摘下仙桃，一口咬下——甘甜的汁液入腹，天地灵气疯狂涌入！'},
+           {t:'记录方位，日后实力足够再来', fx:['flag peach','jiyuan 6'], log:'你恋恋不舍地记下此地，暗下决心：这蟠桃，早晚是我的。'},
+           {t:'尝试与巨蟒交涉', fx:['chance 0.2|eat peach','chance 0.8|hp -10'], log:'你试图与那巨蟒讲道理，它却不由分说地一尾扫来。你狼狈逃窜，总算保住了性命。'}]},
+ {id:'fortune_teller', min:0, w:8, type:'walk',
+  text:'街角一个算命摊前，瞎眼老道忽然叫住你：「道友留步！贫道观你面相，今日有一劫，亦有一缘。十灵石，贫道为你解一解。」',
+  choices:[{t:'付钱听他一言', fx:['ls -10','chance 0.5|jiyuan 8','chance 0.5|mood -3'], log:'老道掐指一算，低声道：「汝之命格，贵不可言……只是……」他话未说完，一阵风吹过，摊子竟凭空消失了。你愣在原地，若有所思。'},
+           {t:'一笑置之，转身离去', fx:['jiyuan 1'], log:'你只当是江湖骗术，未曾放在心上。'}]},
+ {id:'cave_hermit2', min:3, w:5, type:'explore', once:true,
+  text:'你无意间闯入一座灵气逼人的洞天福地。泉眼旁坐着一位看不出年岁的道姑，面前摆着一盘残局。她头也不抬：「老身在此枯等三百年，就为等一个能解此局的人。小友，可愿手谈一局？」',
+  choices:[{t:'欣然落座，对弈一局', hint:'心性考验', fx:['chance 0.4|wuC 1','chance 0.3|gongfa xiandao','chance 0.3|mood -6'], log:'棋局玄妙，暗合天道。你苦思三日三夜，最终投子认负。道姑却抚掌而笑：「能在贪嗔痴中守住本心三百手，已是不易。这卷玉简，送你参悟。」'},
+           {t:'自认棋力不济，婉言谢绝', fx:['mood 3','jiyuan 3'], log:'你坦承自己于棋道一窍不通。道姑轻笑：「知之为知之，不知为不知，是知也。你倒是个诚实人。」'}]},
+ {id:'dragon_well', min:2, w:4, type:'explore', once:true,
+  text:'村中古井忽然枯竭，村民请来你查看。你探头望去，井底深不见底，隐约有金光闪烁，耳边竟响起若有若无的龙吟。老村长说，此井是百年前一条神龙陨落之地。',
+  choices:[{t:'绑绳下井，一探究竟', fx:['chance 0.3|get longzhu','chance 0.7|jiyuan 4'], log:'你顺着井壁而下，在井底淤泥中摸到一枚温润的珠子，内中似有龙影游动！你大喜过望，小心收好。'},
+           {t:'劝村民另寻水源，莫扰龙灵', cls:'good', fx:['karma 4'], log:'你安抚村民，另择吉地掘井。当夜你梦见一条金龙对你颔首致意，次日醒来，枕边多了一片金鳞。'}]},
+ {id:'sect_battle', min:1, w:6, type:'sect', cond:function(){return S.sect==='qingyun';},
+  text:'魔道修士大举来犯青云宗！护山大阵摇摇欲坠，掌门传令：所有弟子御敌！喊杀声震天，你看到平日里温文尔雅的同门，此刻都红了眼。',
+  choices:[{t:'身先士卒，浴血杀敌', cls:'good', fx:['karma 5','chance 0.6|ls 200','chance 0.4|hp -35'], log:'你奋勇当先，连斩数名魔修。战后宗门论功行赏，你声名鹊起，却也结下了不少魔道仇家。'},
+           {t:'镇守阵眼，护佑同门', fx:['karma 3','hp -10','chance 0.3|mood 4'], log:'你死守阵眼，为宗门立下汗马功劳。掌门赞你沉稳可靠。'},
+           {t:'趁乱取些宗门库房物资', fx:['ls 150','mo 5','karma -5'], log:'战乱之中，你悄悄溜进库房顺走一批灵石。无人察觉，只是你心中隐隐不安。'}]}
+];
+
+/* ================= 事件池（下） ================= */
+const EVENTS2 = [
+ {id:'sect_offer', min:1, w:8, once:true, type:'walk', cond:function(){return !S.sect;},
+  text:'你在城中茶楼歇脚，邻桌几位修士正高谈阔论。其中一位白袍修士注意到你，举杯笑道：「这位道友气度不凡，可曾考虑过寻个宗门依靠？敝宗青云宗广纳贤才，每月灵石月例、功法丹药一应俱全。」',
+  choices:[{t:'入青云宗（正道名门）', fx:['sect qingyun','ls 100'], log:'你递上拜帖，通过入门考核，正式成为青云宗弟子。从此也算有了靠山。'},
+           {t:'问问他天煞教如何', hint:'魔道巨擘，功法狠辣', fx:['sect tiansha','mo 8','gongfa wanmo'], log:'白袍修士脸色一变，压低声音给你指了条路。你寻至天煞教分坛，凭着一身狠劲入了教，得赐一卷《万古魔典》残篇。'},
+           {t:'谢绝，自在散修更逍遥', fx:['jiyuan 3','mood 2'], log:'你婉言谢绝。天地为庐，四海为家，未必不如宗门逍遥。'}]},
+ {id:'sect_offer2', min:1, w:5, once:true, type:'market', cond:function(){return !S.sect;},
+  text:'坊市中，一位身着锦袍、笑容可掬的富态修士拦住你：「这位道友，在下万宝楼执事。我万宝楼以商入道，灵石通天，但凡入我楼中，各地分号皆可凭令牌赊购宝物，道友可有意？」',
+  choices:[{t:'加入万宝楼（以商入道）', fx:['sect wanbao','ls 150'], log:'你签下契约，正式成为万宝楼客卿。腰间多了一枚刻着「万」字的温润玉牌。'},
+           {t:'婉言谢绝', fx:['mood 1'], log:'你摇头谢绝。商人重利，你怕自己哪天被卖了还帮着数钱。'}]},
+ {id:'qingyue_meet', min:1, w:6, once:true, type:'social', cond:function(){return !S.partner && S.sect==='qingyun';},
+  text:'宗门后山的梅林里，你偶遇内门弟子苏清月。她正对着一株枯梅出神，见你走来，淡淡颔首：「你是外门弟子？来此何事？」',
+  choices:[{t:'坦然相告：来寻清净', fx:['partner qingyue','mood 4'], log:'你二人于梅林闲谈半日，从修行聊到天地。临别时，苏清月难得露出一丝笑意：「你这人，倒有几分意思。」'},
+           {t:'请教她修行上的困惑', fx:['wuC 0.3','prog 3'], log:'苏清月虽清冷，论起道法却极有见地。你获益良多，只是她始终与你保持着距离。'},
+           {t:'夸她容貌倾城', fx:['mood -5'], log:'苏清月神色一冷：「修行之人，何须在意皮囊。」言罢拂袖而去，你碰了一鼻子灰。'}]},
+ {id:'lanxin_meet', min:0, w:6, once:true, type:'walk', cond:function(){return !S.partner;},
+  text:'你路过一间医馆，见门口围了不少人。原来馆中女医正在为一个被毒蛇咬伤的孩童施救，手法如行云流水。她抬头擦了擦汗，冲你微微一笑：「这位公子气色不佳，可是有伤在身？进来坐坐？」',
+  choices:[{t:'入馆让她诊治', fx:['partner lanxin','hp 15'], log:'柳兰心为你搭脉开方，言谈间得知你是个修仙之人，她眼中闪过好奇之色。此后你常来医馆，与她说些山外趣事。'},
+           {t:'婉拒，说自己并无伤病', fx:['mood 1'], log:'你拱手谢过便离去了。'}]},
+ {id:'moying_meet', min:1, w:5, once:true, type:'social', cond:function(){return !S.partner && S.mo>=25;},
+  text:'夜雨潇潇，你在荒郊破庙避雨，忽闻一阵幽香。一位红衣女子不知何时已坐在火堆旁，火光映着她妖冶的面容：「小修士，一个人赶路，不怕遇上坏人么？」',
+  choices:[{t:'从容应对，谈笑风生', fx:['partner moying','mo 5'], log:'你与她斗嘴半宿，那女子忽然轻笑：「有意思。我叫夜影，记住这个名字。」言罢化作一片花瓣消散。此后她总在你有难时神出鬼没地出现。'},
+           {t:'警惕地退到墙角', fx:['mood -3'], log:'你如临大敌，那女子却咯咯笑着化作花瓣散去，只留下一句：「胆小鬼。」'}]},
+ {id:'partner_tea', min:1, w:7, type:'social', cond:function(){return !!S.partner;},
+  text:'你的道侣备下一盏清茶，邀你月下对坐。茶香袅袅，她轻声问：「修行路上千难万险，你可曾后悔踏上这条路？」',
+  choices:[{t:'执子之手，此生无悔', cls:'good', fx:['mood 8','partnerLove 10'], log:'她眼波流转，轻轻握住你的手。这一瞬，比长生更让你心动。'},
+           {t:'沉默片刻：说不好', fx:['mood -3','partnerLove -5'], log:'你老实回答，她嗔了你一眼，却也知你是真心话。'},
+           {t:'借机与她探讨双修之法', fx:['prog 12','partnerLove 8','mood 6'], log:'月色正好，道法自然。一夜参悟，你二人修为皆有精进，感情也更进一层。'}]},
+ {id:'pet_event', min:0, w:6, type:'any', cond:function(){return !!S.pet && !S.petEvent;},
+  text:'你的灵宠忽然焦躁不安，咬住你的衣角往屋外拽。你跟着它来到后山，发现一道微弱的灵光正在岩缝中明灭。',
+  choices:[{t:'跟随灵宠挖掘', fx:['chance 0.6|get zhuguo 1','chance 0.3|get longzhu','chance 0.1|hp -8'], log:'灵宠刨开岩缝，里面竟藏着一枚储物袋，不知是哪个倒霉修士遗落的。小家伙邀功似的蹭着你，你笑着揉了揉它的脑袋。'},
+           {t:'以为它贪玩，转身回去', fx:['mood -2'], log:'灵宠急得团团转，你却未放在心上。'}]},
+ {id:'heart_demon', min:0, w:0, auto:true, cond:function(){return S.mood<=12 && S.mo>=20;},
+  text:'心魔骤起！你眼前浮现此生最深的执念与恐惧——那些死去的故人、未曾报的仇怨，皆化作狰狞幻象将你包围。一个声音在你心底蛊惑：「放弃吧，何苦如此煎熬？入魔吧，想要什么，魔都能给你……」',
+  choices:[{t:'固守本心，大喝一声「破！」', hint:'道心之考验', p:0.55, fx:['mood 10','mo -8'], fxFail:['mood -8','mo 6','hp -15'], log:'你咬破舌尖，以剧痛唤醒灵台清明，总算将心魔压下。'},
+           {t:'任由心魔宣泄，不再压抑', hint:'一念成魔', fx:['mo 15','mood 10','prog 10'], log:'你放开束缚，任由杀意恨意奔涌而出。那股郁结之气反而泄了大半，你只觉修为精进，心底却隐隐多了一丝冰凉。'},
+           {t:'盘膝诵念清心诀', fx:['mood 6','chance 0.5|mo -5'], log:'你默诵清心诀，心魔渐次平息。'}]},
+ {id:'demon_whisper', min:2, w:5, type:'any', cond:function(){return S.mo>=40 && S.realm>=3;},
+  text:'闭关时，一个沙哑的声音在你心底响起：「汝之资质，困于金丹已到尽头。何不修习魔道速成之法？七日可破境，代价不过是……一点点寿元罢了。」',
+  choices:[{t:'接受魔音灌顶', fx:['prog 45','life -20','mo 12'], log:'你依言而行，果真七日破境！只是代价是鬓角多了几缕霜白，体内魔气也更浓了一分。'},
+           {t:'斩断杂念，不为所动', cls:'good', fx:['mood 8','karma 2'], log:'你冷哼一声，固守道心。那声音渐渐远去，你的心境反倒更上一层楼。'},
+           {t:'试探它的来历', fx:['chance 0.5|wuC 0.4','chance 0.5|mo 6'], log:'你与那声音虚与委蛇，套出几句残缺的魔道口诀。它察觉被你戏耍，恼羞成怒地沉寂了。'}]},
+ {id:'old_scholar', min:0, w:7, type:'walk',
+  text:'村口私塾中，老塾师正教蒙童诵读《道德经》。见你路过，他捋须笑道：「这位后生气度不凡，可愿进来听老夫讲一课？」',
+  choices:[{t:'入内听讲半日', fx:['wuC 0.2','mood 3'], log:'「道生一，一生二，二生三，三生万物。」老塾师讲得深入浅出，你竟觉与修行之道暗合。'},
+           {t:'指点蒙童几手防身术', cls:'good', fx:['karma 2','mood 2'], log:'孩子们围着你叽叽喳喳，你教他们几招强身健体的把式，看着他们亮晶晶的眼睛，心头一暖。'}]},
+ {id:'market_box', min:1, w:6, type:'market',
+  text:'坊市角落，一个灰袍修士鬼鬼祟祟地拉住你：「道友，我这里有个祖传的宝贝木匣，只卖六十六灵石。里面装的东西，连我爹都不知道——万一开出个仙家至宝呢？」',
+  choices:[{t:'买下木匣（66灵石）', hint:'赌一赌机缘', fx:['box'], log:'你付了灵石，接过沉甸甸的木匣。'}, 
+           {t:'这种骗术还是留给别人吧', fx:['mood 1'], log:'你嗤笑一声。这种「祖传宝贝」，坊市里一天能遇见八个。'}]},
+ {id:'karma_reward', min:1, w:5, type:'any', cond:function(){return S.karma>=40 && !S.flags.karmaBless;},
+  text:'你行善积德之名渐传于山野。这夜，你梦见一位慈眉善目的老神仙，手持拂尘：「善哉。汝积德行善，天道有感，老朽特来送你一场造化。」',
+  choices:[{t:'恭敬叩谢仙恩', fx:['flag karmaBless','wu 2','life 10','karma 5'], log:'醒来后，你只觉浑身轻健，悟性通明，仿佛冥冥中确有天道酬善。'},
+           {t:'婉拒：行善不求回报', fx:['flag karmaBless','karma 10','mood 8'], log:'老神仙抚须大笑：「不求回报，方是真善。善哉善哉。」你梦醒，心头一片澄明。'}]},
+ {id:'heaven_offer', min:6, w:4, once:true, type:'any', cond:function(){return S.realm>=6 && S.karma>=60;},
+  text:'这一日，天光乍现，仙乐飘飘。一位金甲神将自云端降临，手持一卷金光闪闪的敕令：「奉天帝法旨：汝功德昭著、道行深厚，特敕封汝为「南天门镇守仙官」，即刻飞升上界任职。汝可愿接旨？」',
+  choices:[{t:'叩谢天恩，接旨飞升', hint:'位列仙班', fx:['end heaven_office'], log:'你双手接过敕令，金光笼罩周身，肉身凡胎在仙光中褪尽，化作仙体。'},
+           {t:'婉拒天旨，愿留人间', fx:['karma 5','mood 8','jiyuan 15'], log:'你婉言谢绝。金甲神将深深看你一眼：「多少修士求都求不来的机缘，你竟不要。也罢，你自有你的道。」言罢腾云而去。'}]},
+ {id:'moon_rabbit', min:0, w:0, auto:true, cond:function(){return S.flags.moon9 && !S.flags.rabbit;},
+  text:'你连点明月九次，月轮中忽然跃出一只捣药的玉兔。它歪头看你，从药臼中拈出一枚桂花糕模样的东西丢给你，口吐人言：「有缘人，这是广寒宫的月饼，吃了能增寿一年。」',
+  choices:[{t:'接过月饼道谢', fx:['flag rabbit','life 1','mood 5'], log:'你接过还温热的月饼，咬了一口，满口桂香。抬头时，玉兔已回到月中，继续捣它的药。'} ,{t:'问它月宫还缺不缺人', fx:['flag rabbit','mood 3'], log:'玉兔咯咯直笑：「缺个砍桂树的，你要来么？」言罢蹦回月中，留下你哭笑不得。'}]},
+ {id:'code_oldman', min:0, w:0, auto:true, cond:function(){return S.flags.codeFeng && !S.flags.cheatDone;},
+  text:'你正出神，一位白发老爷爷突然出现在你面前，笑眯眯地问：「小友，可听说过「风灵月影」？老朽观你骨骼清奇，实乃万中无一的修仙奇才，要不要来一份「修改命格大礼包」？保你今日化神、明日飞升！」',
+  choices:[{t:'好耶！我要开挂！（接受）', hint:'？？？', fx:['flag cheatDone','end cheat'], log:'你接过那道光，只觉得一股不可名状的力量涌入四肢百骸……'},
+           {t:'义正词严地拒绝', hint:'修仙没有捷径', fx:['flag cheatDone','jiyuan 6','mood 4'], log:'「修仙之途，在于一步一个脚印。」你正色道。老爷爷失望地叹了口气，化作一缕青烟散去，临走留下句话：「现在的年轻人，真不识货。」'}]},
+ {id:'code_cat', min:0, w:0, auto:true, cond:function(){return S.flags.codeMiao && !S.pet;},
+  text:'一声软糯的「喵」传来，你低头一看，不知何时脚边蹲着一只通体雪白的灵猫，正仰着脑袋，琥珀色的眼睛一眨不眨地望着你，尾巴尖轻轻摇晃。',
+  choices:[{t:'抱起它，从此养着', fx:['pet cat'], log:'灵猫在你怀里找了个舒服的位置，呼噜呼噜地打起盹来。从今往后，你身边多了一位毛茸茸的跟班。'},
+           {t:'摸摸它的头，放它离开', fx:['mood 3'], log:'你揉了揉它的脑袋。灵猫蹭了蹭你的手，迈着优雅的步子消失在巷尾。'}]},
+ {id:'code_999', min:0, w:0, auto:true, cond:function(){return S.flags.code999 && !S.flags.c999;},
+  text:'虚空中传来一个苍老的声音：「小友，老夫观你印堂发亮，今日宜发财。接好了！」一袋沉甸甸的灵石从天而降，正砸在你脑门上。',
+  choices:[{t:'谢过前辈！（接住灵石）', fx:['flag c999','ls 999'], log:'你捂着脑门上的包，美滋滋地收起灵石。天上掉馅饼，居然是真的。'}]},
+ {id:'code_wuji', min:0, w:0, auto:true, cond:function(){return S.flags.codeWuji && !S.flags.cwuji;},
+  text:'你念动「天地无极」四字，霎时间风云变色、紫气东来，一道虹桥自九天垂落，桥头站着一位看不清面容的仙人：「能诵此四字者，与我有缘。赠你三分气运，好自为之。」',
+  choices:[{t:'躬身道谢', fx:['flag cwuji','jiyuan 10','wuC 0.5'], log:'仙人袖袍一拂，你只觉冥冥中的气运浑厚了几分。虹桥散去，天地复归清明。'}]},
+ {id:'stone_heart', min:2, w:5, type:'any', once:true, cond:function(){return S.realm>=2 && !S.flags.askHeart;},
+  text:'你在一座无名山巅，发现一块通体漆黑的巨岩，岩面光滑如镜，却映不出你的身影。岩下刻着三个字：「问心石」。传说，唯有道心坚定者，方可令此石显形。',
+  choices:[{t:'以手抚石，扪心自问', fx:['flag askHeart','chance 0.5|mood 12','chance 0.5|wuC 0.6'], log:'你闭目扪心，将生平种种在心头过了一遍。再睁眼时，黑岩上竟缓缓浮现一行字：「心之所向，虽千万人吾往矣。」你心头剧震，道心愈发坚定。'},
+           {t:'绕过此石，继续赶路', fx:['jiyuan 1'], log:'你总觉得这石头邪门，没有多做停留。'}]},
+ {id:'mortal_wedding', min:0, w:6, type:'walk', cond:function(){return !S.partner && S.realm<=2;},
+  text:'你借宿的山村正办喜事，红烛高照，喜气洋洋。村长拉着你：「恩公，你救过我们全村，老夫无以为报。我闺女年方十八，模样周正，你若肯留下，老夫把家业都给你！」',
+  choices:[{t:'婉言谢绝，志在长生', fx:['mood 2'], log:'你笑着婉拒：「村长好意，只是我此生已许给大道了。」村长叹口气，仍塞给你一包盘缠。'},
+           {t:'若我他日倦了，再来寻你', fx:['flag villageWife','karma 1'], log:'村长眼睛一亮，连说好。你心中亦有一丝暖意——这红尘中，总有一盏灯为你留门。'}]},
+ {id:'wine', min:0, w:7, type:'walk',
+  text:'路边酒肆旗幡招展，一阵奇异的酒香钻进鼻腔。店家笑道：「客官，小店新酿的「仙人醉」，连神仙闻了都要下凡！来一壶？」',
+  choices:[{t:'来一壶尝尝', fx:['ls -20','chance 0.3|mood 8','chance 0.5|hp -5','chance 0.2|wuC 0.4'], log:'酒入愁肠，你竟在微醺中瞧见一丝大道痕迹。真不愧是「仙人醉」。'},
+           {t:'戒酒，专心修行', fx:['mood 2'], log:'你摇头婉拒，店家也不恼：「修仙的人，都这副德行。」'}]},
+ {id:'snow_peak', min:3, w:5, type:'explore',
+  text:'极北雪峰之巅，你于罡风中盘膝而坐，俯瞰云海翻涌。天地苍茫，万籁俱寂，唯有风声如诉。这一刻，你忽然感到前所未有的渺小，与前所未有的宁静。',
+  choices:[{t:'就此入定，感悟天地', fx:['mood 10','prog 14','chance 0.5|wuC 0.5'], log:'你在雪峰上一坐就是七日。醒来时，眉梢结满冰霜，眼中却比往日更加清澈。'},
+           {t:'采集雪莲', fx:['get bainian 1','hp -8'], log:'你攀上冰崖，采下一株千年雪莲，代价是差点冻掉半条命。'},
+           {t:'放声长啸，抒发胸臆', fx:['mood 6'], log:'你引吭长啸，声震四野。积压多年的块垒，随这一啸尽数散去。'}]},
+ {id:'ancient_tree', min:0, w:8, type:'explore',
+  text:'你发现一棵遮天蔽日的万年古树，树干中空，树洞内壁却生满发光的符文。一只老猿蹲在树杈上，正百无聊赖地挠着肚皮，见你探头，它随手丢来一枚野果。',
+  choices:[{t:'接住野果，向老猿作揖道谢', fx:['chance 0.5|get zhuguo 1','chance 0.5|wuC 0.3'], log:'野果入口，竟是一枚百年朱果，灵气充沛！老猿见你识货，咧嘴一笑，又丢来一枚。'},
+           {t:'研究树洞符文', fx:['chance 0.35|prog 10','chance 0.65|mood -3'], log:'符文玄奥晦涩，你枯坐三日仍不得要领，只好放弃。'},
+           {t:'向老猿拱手告别', fx:['jiyuan 2'], log:'老猿目送你离去，忽然长啸一声，声震山林，似在为你送行。'}]},
+ {id:'fish_village', min:0, w:6, type:'walk',
+  text:'渔村海边，你见一条搁浅的巨鲸奄奄一息，潮水却迟迟不来。渔人们围着它束手无策，有人提议趁早分肉。',
+  choices:[{t:'施法引来潮水，救它归海', cls:'good', fx:['karma 6','chance 0.4|get longzhu','chance 0.6|jiyuan 3'], log:'你耗费灵力召来一阵海潮，巨鲸得救，摆尾潜入深海前，喷出一道水柱，一枚珠子随水柱落在你掌心。'},
+           {t:'随渔人分了鲸肉', fx:['ls 100','karma -4'], log:'鲸肉卖了好价钱，你分到一百灵石。只是夜里，你总梦见巨鲸那双温驯的眼睛。'}]},
+ {id:'desert', min:1, w:5, type:'wander',
+  text:'大漠黄沙，烈日当空。你于沙暴中迷失方向，口干舌燥之际，忽然望见前方海市蜃楼——楼阁重重，仙鹤翩跹，似乎还有一位仙女在楼头对你招手。',
+  choices:[{t:'循着蜃楼走去', fx:['chance 0.5|prog 12','chance 0.5|hp -18'], log:'你追着蜃楼走了三天三夜，最后瘫倒在真正的绿洲边。半梦半醒间，你似乎真的悟到了什么。'},
+           {t:'闭目凝神，不为幻象所动', fx:['mood 6'], log:'你盘膝闭目，任由沙暴掠过。待风沙平息，绿洲就在前方百步。'}]},
+ {id:'trib_prep', min:1, w:4, type:'any', once:true, cond:function(){return S.realm>=2 && !S.flags.tribPrep && S.progress>=60;},
+  text:'你隐隐感到，突破的契机将至，届时恐有雷劫加身。一位云游老道看出了你的顾虑，笑道：「渡劫如渡人，一靠实力，二靠准备，三靠……运道。」',
+  choices:[{t:'请教渡劫之法', fx:['flag tribPrep','wuC 0.3'], log:'老道传授你一套「观想雷法」的窍门，可于劫雷落下时窥见一线生机。'},
+           {t:'问老道可有好宝贝相让', fx:['ls -500','get bileizhu'], log:'老道笑眯眯地掏出一枚避雷珠：「老夫与你有缘，五百灵石，便宜你了。」你怀疑自己被宰了，却还是咬牙买下。'}]}
+];
+/* ===== 扩充事件·奇遇即结局 ===== */
+EVENTS2.push(
+ {id:'e_martial', min:0, w:7, type:'walk', once:true,
+  text:'山间一处破败的演武场，一位白发老武师正独自练拳。他一拳轰出，面前的石碑应声而碎，尘土飞扬。见你驻足，他收拳而立，沉声道：「小子，我看你根骨不凡。武道，亦可通神，你可愿随我以武证道？」',
+  choices:[
+   {t:'拜他为师，弃仙从武', hint:'以武入道，亦是一条大道', fx:['end end_martial']},
+   {t:'谢绝好意，仍走仙途', fx:['mood 3','hp 6'], log:'你抱拳谢过。老武师也不勉强，只叹一句「可惜」。'},
+   {t:'与他切磋一番', fx:['hp 10','wuC 0.3'], log:'一场切磋，你受益匪浅，更觉武道深不可测。'}
+  ]},
+ {id:'e_paradise', min:0, w:7, type:'explore', once:true,
+  text:'顺溪而行，你竟穿过一片迷雾，来到一处与世隔绝的桃花源。阡陌交通，鸡犬相闻，村人见你只是微笑，仿佛已等你许久。',
+  choices:[
+   {t:'就此留下，不再出世', hint:'此间乐，不思蜀', fx:['end end_peach_grove']},
+   {t:'讨碗水喝便走', fx:['hp 15','mood 6'], log:'村人端来一碗清甜的泉水，你饮尽后，周身疲乏尽消。'},
+   {t:'记下方位，来日再来', fx:['jiyuan 8'], log:'你留了个记号。可再回头时，迷雾已散，来路难寻。'}
+  ]},
+ {id:'e_sword_tomb', min:1, w:6, type:'explore', once:true,
+  text:'荒山深处有一片剑冢，成千上万柄断剑插满山坡，剑气森然。剑冢中央，一柄锈剑轻轻颤动，似在呼唤你。',
+  choices:[
+   {t:'以血祭剑，立誓守冢', hint:'此剑与我，缘定三生', fx:['end end_sword_tomb']},
+   {t:'拔剑一试锋芒', fx:['chance 0.4|gongfa tiangang','chance 0.6|hp -15'], log:'你握剑在手，万剑齐鸣。可惜那剑终未认主，你只得悻悻放下。'},
+   {t:'恭敬三拜，转身离开', fx:['karma 2','mood 3'], log:'你向剑冢深深一拜，只觉胸中浊气尽去。'}
+  ]},
+ {id:'e_ghost_city', min:1, w:6, type:'wander', once:true,
+  text:'子夜时分，你误入一座灯火通明的鬼市。往来皆是面色苍白之人，摊位上的货物也透着森森鬼气。鬼市深处，似有丝竹之声。',
+  choices:[
+   {t:'好奇心起，深入鬼市', fx:['chance 0.5|get longzhu','chance 0.5|hp -20'], log:'你在鬼市中淘换一番，回来时浑身冰凉。'},
+   {t:'留在这鬼市之中', hint:'与鬼为邻，另类长生', fx:['end end_ghost_city']},
+   {t:'赶紧抽身离去', fx:['mood 2'], log:'你屏住呼吸，一路疾行，直至东方既白。'}
+  ]},
+ {id:'e_tianji', min:3, w:5, type:'any', once:true,
+  text:'你于山巅夜观天象，忽见紫微星动，天机大乱。冥冥之中，似有一道声音问你：「可愿窥尽天机，知晓前世今生、过去未来？」',
+  choices:[
+   {t:'窥尽天机', hint:'天机不可尽泄，必遭反噬', fx:['end end_tianji']},
+   {t:'窥探一角即可', fx:['wuC 1','jiyuan 8'], log:'你只窥得一角，便觉头痛欲裂，却也得了三分明悟。'},
+   {t:'天机不可测，还是算了', fx:['mood 6'], log:'你压下好奇，转身下山。'}
+  ]},
+ {id:'e_moon_palace', min:0, w:4, type:'any', once:true, cond:function(){return S.flags.moonClicks>=9;},
+  text:'月满中天，清辉如霜。一位白衣仙子踏月而来，朝你盈盈一笑：「公子与广寒有缘，可愿随我上月宫，看尽千年桂花开落？」',
+  choices:[
+   {t:'随她上月宫', hint:'广寒宫阙，别有天地', fx:['end end_moon_palace']},
+   {t:'婉言谢绝', fx:['jiyuan 10','mood 6'], log:'你婉言谢绝。仙子轻笑一声，化作清辉散去。'},
+   {t:'问她月宫可缺个砍桂的', fx:['mood 8'], log:'仙子掩口轻笑：「缺个扫地的，你来么？」'}
+  ]},
+ {id:'e_sea', min:2, w:6, type:'wander', once:true,
+  text:'东海岸边，你见一叶扁舟无风自动。老船夫笑着招手：「海上有仙山，山在虚无缥缈间。客人可要渡海？」',
+  choices:[
+   {t:'登舟渡海，寻访仙山', hint:'一苇渡海，去而不返', fx:['end end_sea']},
+   {t:'付钱买下舟楫', fx:['ls -50','get kuang 1'], log:'你买下小船，独自在近海荡了半日。'},
+   {t:'只问海上风物，不上船', fx:['jiyuan 4'], log:'老船夫与你谈天说地，你听得心驰神往。'}
+  ]},
+ {id:'e_emperor', min:1, w:6, type:'walk', once:true,
+  text:'京城之中，当今天子微服私访，偶然与你对坐饮茶。相谈甚欢，他忽然正色道：「先生大才，可愿出山辅佐于朕，共创太平盛世？」',
+  choices:[
+   {t:'出仕辅佐，开创盛世', hint:'人间帝王师，亦是修行', fx:['end end_emperor']},
+   {t:'婉言谢绝，志在山水', fx:['karma 4','mood 4'], log:'你婉言谢绝，只道闲云野鹤惯了。'},
+   {t:'向他进献几枚灵丹', fx:['lose heal 1','karma 6','ls 200'], log:'天子龙颜大悦，重赏于你。'}
+  ]},
+ {id:'e_seal', min:4, w:5, type:'explore', once:true,
+  text:'极北冰原之下，封印着一尊上古魔头。镇压它的法阵年久失修，已出现裂缝，魔气外泄，生灵涂炭。你心知，若无人以身镇魔，不日便是浩劫。',
+  choices:[
+   {t:'以己身补阵，永镇此魔', hint:'我不入地狱，谁入地狱', fx:['end end_seal']},
+   {t:'召集修士共同加固封印', fx:['karma 8','hp -20'], log:'你奔走呼号，终于召集同道，合力将封印重新稳固。'},
+   {t:'封印已破，速速离去', fx:['karma -8','mo 6'], log:'你转身离去，身后魔气冲天。'}
+  ]},
+ {id:'e_star', min:3, w:5, type:'any', once:true,
+  text:'夜空中，一颗星辰格外明亮，忽然化作一道流光，直直没入你的眉心。你心神一震，眼前浮现出浩瀚星海。',
+  choices:[
+   {t:'顺流而上，与星辰合一', hint:'吾身即星，星即吾身', fx:['end end_star']},
+   {t:'强行稳住心神', fx:['wuC 0.8','mood 4'], log:'你盘膝而坐，将那股星辰之力缓缓炼化。'},
+   {t:'任其流淌，随遇而安', fx:['jiyuan 8'], log:'星辉在你体内流转，似有似无。'}
+  ]},
+ {id:'e_wine', min:1, w:6, type:'walk', once:true,
+  text:'路边酒肆，一位醉眼朦胧的老者拉住你：「小友，陪老朽饮上一杯！这『仙人醉』，一口下去，烦恼全消。」',
+  choices:[
+   {t:'陪他一醉方休', hint:'一醉千年，何尝不是长生', fx:['end end_wine']},
+   {t:'浅尝辄止', fx:['mood 8','chance 0.4|wuC 0.3'], log:'美酒入喉，你只觉飘飘欲仙。'},
+   {t:'把老者送回家', fx:['karma 3'], log:'你扶着醉醺醺的老者，一步步送他回了家。'}
+  ]},
+ {id:'e_dream', min:2, w:6, type:'any', once:true,
+  text:'一场大梦，你梦见自己化作蝴蝶，飞舞于百花之间，竟分不清究竟是你梦见了蝴蝶，还是蝴蝶梦见了你。',
+  choices:[
+   {t:'沉醉梦中，不愿醒来', hint:'庄周梦蝶，物我两忘', fx:['end end_dream']},
+   {t:'以大毅力挣脱梦境', fx:['mood 8','wuC 0.4'], log:'你猛地睁开双眼，冷汗淋漓，道心却愈发坚定。'},
+   {t:'在梦中参悟', fx:['prog 12'], log:'你在梦境中似有所悟，醒来后记忆却模糊了大半。'}
+  ]}
+);
+/* ===== 扩充事件·历练奇遇 ===== */
+EVENTS2.push(
+ {id:'e_herbgarden', min:0, w:8, type:'explore', once:true,
+  text:'你误入一片灵气盎然的山谷，谷中遍生灵药，连空气中都弥漫着草木清香。一位守谷老人拄着拐杖，笑呵呵地问你要不要采几株。',
+  choices:[
+   {t:'征得同意，采几株灵药', cls:'good', fx:['get lingcao 3','get bainian 2','karma 2'], log:'老人慷慨地让你采了不少灵药。'},
+   {t:'帮老人打理药园', fx:['karma 3','get lingcao 4','flag alchemy'], log:'你勤勤恳恳打下手，老人直夸你是个好苗子。'},
+   {t:'问老人可收徒否', fx:['chance 0.5|wu 1','chance 0.5|mood 3'], log:'老人笑而不语，只递给你一袋灵草。'}
+  ]},
+ {id:'e_qingluan', min:2, w:6, type:'explore', once:true,
+  text:'九天之上，一声清越的凤鸣划破长空。一只羽泛青光的青鸾幼鸟坠落在你面前，翅膀受了伤，正可怜兮兮地望着你。',
+  choices:[
+   {t:'悉心救治', cls:'good', fx:['pet qingluan','karma 4'], log:'你为青鸾包扎伤口。它伤愈后，竟赖在你身边不肯离去。'},
+   {t:'喂它几粒丹药', fx:['lose heal 1','chance 0.6|pet qingluan'], log:'青鸾啄食了丹药，亲昵地蹭了蹭你。'},
+   {t:'它乃仙禽，还是放归九天', fx:['karma 5','jiyuan 4'], log:'你松开手，青鸾振翅而起，绕你三圈方才离去。'}
+  ]},
+ {id:'e_xuangui', min:1, w:7, type:'explore', once:true,
+  text:'寒潭深处，一只背刻先天卦象的墨绿小龟缓缓浮出水面，绿豆似的小眼睛直勾勾盯着你。',
+  choices:[
+   {t:'将它捞起，收为灵宠', fx:['pet xuangui'], log:'小龟在你掌心探了探头，似乎很满意这个新家。'},
+   {t:'此乃祥瑞，放它回潭', fx:['karma 3','jiyuan 4'], log:'你将小龟放回潭中，它回头望你一眼，沉入水底。'},
+   {t:'观察它背上的卦象', fx:['chance 0.5|wuC 0.5','chance 0.5|mood 3'], log:'你凝神细看，那卦象竟似在缓缓流转。'}
+  ]},
+ {id:'e_chan', min:1, w:7, type:'market', once:true,
+  text:'坊市角落，一只三足金蟾蹲在摊主肩上，时不时吐出几枚铜钱。摊主愁眉苦脸：「这祖宗天天吐钱，烦死我了，谁要谁拿走！」',
+  choices:[
+   {t:'把它带回家', fx:['pet chan','ls -100'], log:'金蟾跳进你怀里，从此成了你的招财童子。'},
+   {t:'笑而不语，转身离开', fx:['mood 2'], log:'摊主在你身后直喊「价钱好商量」。'},
+   {t:'问它能不能吐灵石', fx:['chance 0.4|ls 66','chance 0.6|mood 2'], log:'金蟾眨眨眼，吐出一枚铜钱。'}
+  ]},
+ {id:'e_swordsmith', min:1, w:7, type:'market', once:true,
+  text:'一间不起眼的铁匠铺里，炉火正旺。打铁的老翁头也不抬：「客官，买剑？老夫这里只锻好剑，不卖俗物。」',
+  choices:[
+   {t:'求购一柄好剑', fx:['ls -800','get qingfeng'], log:'你咬牙掏出八百灵石，换来一柄寒光凛冽的灵剑。'},
+   {t:'请教铸剑之道', fx:['chance 0.5|wuC 0.4','chance 0.5|mood -3'], log:'老翁口若悬河，你却听得似懂非懂。'},
+   {t:'只借炉火烤烤手', fx:['mood 2'], log:'老翁翻了个白眼，继续埋头打铁。'}
+  ]},
+ {id:'e_danfang', min:1, w:6, type:'any', once:true,
+  text:'一位鹤发童颜的丹师正在坊市当众炼丹，炉火纯青，丹香四溢。围观者无不叹服。你心念一动，上前请教。',
+  choices:[
+   {t:'诚心求教丹方', fx:['chance 0.6|learn xisui','chance 0.4|ls -200'], log:'丹师见你心诚，竟传了你半张洗髓丹方。'},
+   {t:'买一枚丹药试试', fx:['ls -150','get pozhao 1'], log:'你买下一枚破障丹，小心收好。'},
+   {t:'只看热闹', fx:['mood 3'], log:'你混在人群里看完了整场炼丹。'}
+  ]},
+ {id:'e_temple', min:0, w:7, type:'walk',
+  text:'一座古刹隐于山间，晨钟暮鼓，梵音袅袅。一位老僧正在扫落叶，见你到来，微微一笑。',
+  choices:[
+   {t:'入寺诵经半日', fx:['karma 4','mood 6'], log:'你在佛前静坐半日，心头的浮躁尽数沉淀。'},
+   {t:'与老僧论道', fx:['chance 0.5|wuC 0.4','chance 0.5|mood 4'], log:'一僧一俗，竟论得投机。'},
+   {t:'捐些香火钱', fx:['ls -50','karma 5'], log:'你在功德箱前放下几枚灵石。'}
+  ]},
+ {id:'e_bridge', min:0, w:7, type:'walk',
+  text:'断桥残雪，一蓑烟雨。你独自立于桥头，看江面渔火点点，忽觉天地之大，自己不过是沧海一粟。',
+  choices:[
+   {t:'静立良久，感悟天地', fx:['mood 8','prog 8'], log:'你在桥头站到雨停，心境豁然开朗。'},
+   {t:'买一壶酒，倚栏独酌', fx:['ls -10','mood 6'], log:'几杯酒下肚，愁绪随风散去。'},
+   {t:'与过往船家闲聊', fx:['jiyuan 2','karma 1'], log:'船家讲起江湖趣闻，你听得津津有味。'}
+  ]},
+ {id:'e_gamble', min:0, w:7, type:'market',
+  text:'坊市里有间赌坊，骰子声、吆喝声震天。门口的小二满脸堆笑：「客官，手气来了挡都挡不住，进来试试？」',
+  choices:[
+   {t:'小赌怡情', fx:['chance 0.4|ls 120','chance 0.6|ls -60'], log:'你红着脸出来了，至于是赢是亏，只有你自己知道。'},
+   {t:'赌一把大的！', fx:['chance 0.25|ls 500','chance 0.75|ls -200'], log:'你心跳如鼓，最终……'},
+   {t:'十赌九骗，不碰为妙', fx:['mood 3'], log:'你摇摇头，转身离开。'}
+  ]},
+ {id:'e_peak', min:0, w:7, type:'walk',
+  text:'泰山之巅，你俯瞰云海翻涌，旭日东升，万道金光洒满人间。',
+  choices:[
+   {t:'一览众山小', fx:['mood 10','wuC 0.3'], log:'你长啸一声，胸中豪气干云。'},
+   {t:'对着日出打坐吐纳', fx:['prog 10'], log:'朝阳紫气入体，你只觉修为隐隐精进。'},
+   {t:'提笔在崖壁题字', fx:['jiyuan 4'], log:'你题下几字，留待后人评说。'}
+  ]},
+ {id:'e_oldfriend', min:1, w:6, type:'social', cond:function(){return !!S.partner;},
+  text:'旧地重游，你与道侣携手同行。看着眼前熟悉的风景，两人一时都有些感慨。',
+  choices:[
+   {t:'许下相伴长生的誓言', fx:['partnerLove 15','mood 10'], log:'她倚在你肩头，轻声应了。'},
+   {t:'为她采来山花一束', fx:['partnerLove 8'], log:'她接过花，笑靥如花。'},
+   {t:'静享这难得的安宁', fx:['mood 8'], log:'两人并肩而坐，看云卷云舒。'}
+  ]},
+ {id:'e_mine', min:1, w:7, type:'explore',
+  text:'一座废弃的灵矿里，你发现矿壁上仍嵌着几块品相不错的灵石原矿，只是矿洞深处黑黢黢的，隐隐有异响。',
+  choices:[
+   {t:'就地开采', fx:['get kuang 2','ls 60'], log:'你敲下几块灵矿，小有收获。'},
+   {t:'深入矿洞一探', fx:['chance 0.4|get kuang 3','chance 0.3|ls 200','chance 0.3|hp -20'], log:'矿洞深处果然别有洞天。'},
+   {t:'此地不祥，速速离开', fx:['mood 2'], log:'你瞥了眼深不见底的矿洞，转身便走。'}
+  ]}
+);
+const EV_ALL = EVENTS.concat(EVENTS2);
+
+/* ================= 结局图鉴 ================= */
+const ENDINGS = {
+ mortal_dream:{name:'凡尘一梦', cat:'尘缘', tag:'生死',
+  hint:'未能筑基，寿元耗尽，于凡尘中悄然离世。',
+  ep:'「凡尘一梦，梦醒无痕。」{age}岁那年，{name}躺在老宅的竹椅上，望着天边最后一抹晚霞，缓缓合上了眼。膝下儿孙哭声一片，却无人知晓，这个平凡的老人，年轻时也曾仰望过云端，也曾做过一个关于长生的、漫长的梦。'},
+ retire_mortal:{name:'采菊东篱', cat:'尘缘', tag:'抉择',
+  hint:'放下仙途，归隐田园，了此余生。',
+  ep:'{name}最终选择了留下。他在山脚下结庐而居，春种秋收，冬雪夏荷。许多年后，村里人都知道山脚下住着一位博学慈祥的老者，会讲许多光怪陆离的故事。故事里，有仙人，有妖魔，有长生。只有{name}自己知道，那不是故事。'},
+ miser:{name:'守财奴', cat:'趣闻', tag:'隐藏',
+  hint:'？（极难触发的隐藏结局）',
+  ep:'{name}死了，死在一堆灵石上面——足足五万枚灵石，堆满了整个密室。直到咽气，他都没舍得花一枚。「灵石是死的，人是活的。可有些人，活了一辈子，却成了灵石的奴。」闻讯赶来的修士摇着头，替他合上了眼。据传，{name}的墓志铭只有一句话：「生不带来，死不带去，可我就是不甘心。」'},
+ demonic_death:{name:'走火入魔·道消', cat:'命途', tag:'道陨',
+  hint:'道心失守，走火入魔，身死道消。',
+  ep:'{name}最终还是没能守住那道心。魔念如野火燎原，烧尽了数十载苦修的道行。待旁人发现时，{name}已七窍流血，双目赤红，气绝于闭关的石室之中。墙上满是指甲抓出的痕迹——据说，那是道心与魔念，最后搏斗的印记。'},
+ heart_possess:{name:'心魔夺舍', cat:'命途', tag:'道陨',
+  hint:'魔障深重，心神被心魔彻底吞噬。',
+  ep:'魔障已深至骨髓，{name}的意志终于被心魔吞噬。当{name}再度睁开眼时，瞳孔中已是一片猩红——那不再是{name}，而是一具被魔念占据的躯壳。从此世间少了一个求道者，多了一个为祸苍生的魔头。百年后，有正道修士斩此魔于东海之滨，临死前，那魔头眼中竟闪过一丝清明，似有泪光。'},
+ trib_death:{name:'天劫陨落', cat:'命途', tag:'道陨',
+  hint:'渡劫失败，灰飞烟灭于天威之下。',
+  ep:'雷海翻涌，天威如狱。{name}倾尽毕生修为，却终究未能抗住那最后一道劫雷。耀眼的白光吞没了一切，方圆十里草木皆焦。{age}年的道行，数十载的求索，尽数化作天地间一声若有若无的叹息。「人力终有穷时，天道浩渺，不可强求。」'},
+ hp_death:{name:'血洒江湖', cat:'命途', tag:'道陨',
+  hint:'重伤不治，殒命于尘世纷争。',
+  ep:'江湖路远，刀剑无眼。{name}最终没能躲过那一劫。鲜血染红了衣襟，{name}仰面倒下，望着头顶的天——那天的云很白，天很蓝，就像很多年前，{name}第一次听说「修仙」二字时，想象中仙人的模样。江湖上很快流传起{name}的故事，有人说他侠肝义胆，有人说他痴心妄想。{name}都听不见了。'},
+ reincarnate:{name:'兵解转世', cat:'命途', tag:'轮回',
+  hint:'肉身将灭时，元婴出窍，兵解转世。',
+  ep:'大限将至，{name}却出奇地平静。元婴自天灵跃出，回首望了一眼这具行将朽坏的躯壳，与这滚滚红尘。「这一世，{name}算是活明白了。」元婴化作一点灵光，没入轮回。来世，{name}或许不再记得此生的名字，但那份对长生的执念，将随灵魂流转，生生不息。'},
+ sect_founder:{name:'开宗立派·万世仙门', cat:'善果', tag:'传承',
+  hint:'功成名就后开宗立派，传承道统。',
+  ep:'灵山福地之上，钟声悠扬。{name}端坐于大殿之上，看着台下乌泱泱的弟子，恍惚间想起自己初入仙途时的模样。「大道三千，吾道不孤。」{name}抚须而笑。千百年后，此宗已成一方巨擘，而开山祖师{name}的传说，仍在弟子间代代传颂。'},
+ retire_ancestor:{name:'一方老祖', cat:'善果', tag:'抉择',
+  hint:'筑基有成后急流勇退，逍遥一方。',
+  ep:'{name}没有继续追逐那虚无缥缈的长生。他在一方水土扎下根来，护佑乡里，教化后辈。方圆百里，无人不知{name}老祖的威名。有人说{name}胸无大志，{name}却笑而不语——长生漫漫，而人间烟火，亦是修行。'},
+ retire_immortal:{name:'人间真仙', cat:'善果', tag:'抉择',
+  hint:'修为通玄后不入仙门，留驻人间，逍遥一世。',
+  ep:'{name}终究没有踏上飞升的仙桥。在他看来，天上仙宫，未必比得上人间一壶浊酒、一场落雪。{name}化作凡人在红尘中游历，或于闹市煮茶，或于深山抚琴。偶有修士认出{name}，欲行大礼，{name}总是笑着摆手：「莫拜莫拜，我不过是个贪恋人间的俗人罢了。」此之谓：人间真仙。'},
+ buddha:{name:'功德圆满·立地成佛', cat:'善果', tag:'大德',
+  hint:'一生行善积德，寿终时功德圆满，立地成佛。',
+  ep:'弥留之际，{name}的周身忽然亮起层层金光。一生所积功德如潮水般涌来，化作漫天莲华。西方梵音阵阵，{name}于金光中跏趺而坐，神色安详，含笑而逝。尸身百日不腐，异香满室。后人在{name}坐化之处建塔供奉，香火千年不绝。善哉，善哉。'},
+ merge_dao:{name:'大梦万古·以身合道', cat:'隐藏', tag:'真结局',
+  hint:'？（隐藏真结局）',
+  ep:'一梦万古，万古一梦。{name}在沉睡中走过了沧海桑田，看尽了王朝兴替、仙魔起落。梦醒时，{name}已分不清自己是庄周，还是蝴蝶。「原来，道不在天上，不在身外，而在这一呼一吸之间。」{name}微微一笑，肉身化作点点灵光，融入天地。自此，风是{name}，云是{name}，山川草木，皆是{name}。此之谓：以身合道。'},
+ heaven_office:{name:'位列仙班', cat:'善果', tag:'敕封',
+  hint:'功德昭著，受天庭敕封，飞升为仙官。',
+  ep:'南天门外，仙鹤引路，霞光万道。{name}身着仙官袍服，踏上金阶，回望人间最后一眼——那云海之下，是自己修行了{age}年的滚滚红尘。「从此仙凡两隔了。」{name}轻叹一声，转身步入凌霄殿。是日，天庭多了一位恪尽职守的仙官。人间，少了一个叫{name}的修士。'},
+ ascend:{name:'白日飞升·逍遥天仙', cat:'飞升', tag:'正道',
+  hint:'功德与心境俱佳，渡劫飞升，成就天仙。',
+  ep:'劫云散尽，天门洞开。九色仙光垂落，{name}沐浴其中，只觉四肢百骸前所未有的轻盈。凡胎在此刻褪尽，化作无垢仙体。「原来，天上是这般光景。」{name}最后回望了一眼人间——那山，那水，那些年少时的梦，皆已遥远。{name}微微一笑，足下生莲，踏着虹桥，一步步走向那扇门。自此，仙凡两隔。'},
+ ascend_sword:{name:'一剑开天门·剑仙', cat:'飞升', tag:'剑道',
+  hint:'以剑入道，证得剑仙果位。',
+  ep:'「剑来——」{name}一声清喝，身后万剑齐鸣。毕生剑意凝于一线，化作惊天一剑，竟硬生生将天门劈开！天光如瀑，{name}御剑而起，衣袂猎猎，剑啸九天。「此生唯剑，不负长生。」自此，九天之上，多了一位快意恩仇的剑仙。人间，则流传着一个「一剑开天门」的传说。'},
+ ascend_demon:{name:'魔焰滔天·魔尊飞升', cat:'飞升', tag:'魔道',
+  hint:'以魔证道，破天飞升，成就魔尊。',
+  ep:'{name}仰天长啸，魔焰冲霄，竟将漫天劫云都染成墨色。「天要阻我，我便破了这天！」劫雷落下，{name}不闪不避，以魔躯硬撼天威。三九之劫尽数劈落，{name}立于焦土之上，魔焰更盛。天门在{name}面前轰然洞开——不是仙光，而是幽深的魔渊。{name}大笑着踏入其中。自此，魔界多了一位凶名赫赫的魔尊。'},
+ alchemy_ascend:{name:'丹成九转·药仙飞升', cat:'飞升', tag:'丹道',
+  hint:'以丹入道，丹成九转，飞升药仙。',
+  ep:'丹炉之中，九色霞光冲霄而起——九转金丹，成了！{name}盘膝而坐，金丹入腹，周身药香弥漫，竟引动天劫。劫雷落下，却在{name}身前三尺化作缕缕药气消散。「以丹入道，亦证长生。」{name}踏碎虚空，衣袖间犹带三分药香。自此，仙界多了一位妙手回春的药仙。'},
+ beast:{name:'与兽同飞', cat:'飞升', tag:'隐藏',
+  hint:'？（隐藏结局：与灵宠一同飞升）',
+  ep:'天门开启的刹那，{pet}忽然发出一声清越的长鸣，身形暴涨，现出神兽真身！{name}又惊又喜，翻身跃上其背。「好伙计，原来你一直在等我。」{pet}载着{name}冲天而起，穿过云海，直入天门。自此，仙界多了一对形影不离的仙侣——人与兽，共证长生。'},
+ couple:{name:'双宿双飞', cat:'飞升', tag:'隐藏',
+  hint:'？（隐藏结局：与道侣携手飞升）',
+  ep:'天劫散尽，仙光垂落。{name}却没有急着登上仙桥，而是转身，向{partner}伸出了手。「这一世，我证得了长生。可若没有你，长生也不过是漫长的孤寂。」{partner}眼眶微红，握住了{name}的手。二人相视一笑，携手踏上虹桥。自此，九天之上，多了一对神仙眷侣。'},
+ immortal_return:{name:'谪仙归位', cat:'飞升', tag:'隐藏',
+  hint:'？（隐藏结局）',
+  ep:'天门洞开的刹那，{name}识海中尘封的记忆忽然苏醒——原来，{name}本就是上界谪落的仙人，这一世历劫，只为重登仙位。「原来如此。」{name}轻叹一声，周身的仙光陡然璀璨了十倍。九天之上，仙乐齐鸣，似在迎接故人归位。{name}一步踏入天门，自此，天庭多了一位归位的仙君。'},
+ cheat:{name:'开挂人生', cat:'趣闻', tag:'隐藏',
+  hint:'？（隐藏结局：不可说，不可说）',
+  ep:'「风灵月影，唯我独尊！」{name}周身光华乱闪，境界如坐火箭般飙升——炼气、筑基、金丹、元婴……短短一炷香，竟已逼近大乘！{name}狂笑着引动天劫，欲要一步登天。然而天道震怒，九重雷劫竟化作一只遮天巨手，一把将{name}攥住，狠狠掷入轮回：「小小外挂，也敢欺天？」据说，{name}的转世之身至今仍在某款游戏里当NPC。'}
+};
+
+/* ================= 工具 ================= */
+const $ = function(id){return document.getElementById(id);};
+const rnd = function(a,b){return a + Math.random()*(b-a);};
+const ri = function(a,b){return Math.floor(rnd(a,b+1));};
+const chance = function(p){return Math.random()<p;};
+const clamp = function(v,a,b){return Math.max(a,Math.min(b,v));};
+const pick = function(arr){return arr[Math.floor(Math.random()*arr.length)];};
+const pad2 = function(n){return n<10?'0'+n:''+n;};
+const esc = function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+const fmt = function(tpl, map){return String(tpl).replace(/\{(\w+)\}/g, function(m,k){return (k in map)? map[k] : m;});};
+const LS_KEY = 'wendaochangsheng_run_v1';
+const LS_META = 'wendaochangsheng_meta_v1';
+/* ================= 全局状态 ================= */
+let S = null;
+let META = null;
+let UI = {waiting:false, currentEvent:null, queue:[], modal:false, btkTimer:null};
+const SECRET_NAMES = ['韩立','萧炎','林动','王林','叶凡','张小凡','石昊','陈平安','李逍遥','徐缺','唐三','秦羽'];
+const SECRET_GIFT = function(name){
+  if(SECRET_NAMES.indexOf(name)>=0){
+    S.flags.hero=true; S.jiyuan+=8;
+    return '冥冥之中，仿佛有一缕来自「异世界」的气运垂青于你……（隐藏气运+8）';
+  }
+  return null;
+};
+/* ================= 元数据（图鉴/成就/多周目） ================= */
+const ACHIS = [
+ {id:'first', name:'初窥仙门', desc:'引气入体，踏入炼气期'},
+ {id:'zj', name:'筑就道基', desc:'突破至筑基期'},
+ {id:'jd', name:'金丹大成', desc:'突破至金丹期'},
+ {id:'yy', name:'元婴出窍', desc:'突破至元婴期'},
+ {id:'hs', name:'炼神化虚', desc:'突破至化神期'},
+ {id:'lx', name:'炼虚合道', desc:'突破至炼虚期'},
+ {id:'dc', name:'大乘圆满', desc:'突破至大乘期'},
+ {id:'fs', name:'白日飞升', desc:'成功飞升'},
+ {id:'rich', name:'富甲一方', desc:'累计赚取灵石一万枚'},
+ {id:'shan', name:'大善人', desc:'功德达到一百'},
+ {id:'mo', name:'魔焰滔天', desc:'魔障达到八十'},
+ {id:'dan', name:'丹道小成', desc:'炼制丹药十枚'},
+ {id:'bao', name:'收藏家', desc:'同时拥有十件以上宝物'},
+ {id:'qing', name:'情缘', desc:'觅得道侣'},
+ {id:'shou', name:'御灵', desc:'收服灵宠'},
+ {id:'jixing', name:'气运之子', desc:'机缘达到八十'},
+ {id:'shi', name:'转世重修', desc:'解锁五个结局'},
+ {id:'renjian', name:'人间值得', desc:'解锁十个结局'},
+ {id:'da', name:'见道', desc:'解锁十五个结局'}
+];
+const loadMeta = function(){
+  try{ META = JSON.parse(localStorage.getItem(LS_META)); }catch(e){ META=null; }
+  if(!META){ META = {ends:{}, achis:{}, runs:0, rerolls:0, ngp:0}; }
+  if(!META.ends) META.ends={};
+  if(!META.achis) META.achis={};
+};
+const saveMeta = function(){ try{ localStorage.setItem(LS_META, JSON.stringify(META)); }catch(e){} };
+const unlockEnd = function(id){ if(!META.ends[id]) META.ends[id]=1; saveMeta(); };
+const unlockAchi = function(id){ if(!META.achis[id]){ META.achis[id]=1; saveMeta(); toast('✨ 成就达成：'+achisName(id)); } };
+const achisName = function(id){ var a = ACHIS.filter(function(x){return x.id===id;}); return a.length? a[0].name : id; };
+const countEnds = function(){ var n=0; for(var k in META.ends) n++; return n; };
+/* ================= 初始化角色 ================= */
+const newState = function(o){
+  var fx = (ORIGINS.filter(function(x){return x.id===o.origin;}))[0].fx;
+  var life = 84 + (o.origin==='fanwu'?25:0);
+  S = { v:1, name:o.name, origin:o.origin, rootId:o.root, gongfa:'jichu',
+        realm:0, progress:0, age:16, life:life, hp:100, mood:60, karma:0, mo:0,
+        wu:26, jiyuan:15, ls:50, items:{}, recipes:{heal:1,juling:1,qingxin:1,peiyuan:1},
+        sect:null, partner:null, partnerLove:0, pet:null,
+        flags:{}, stats:{refine:0, earn:0, acts:0, breakthrough:0}, once:{}, logTail:'' };
+  applyFx(fx);
+  S.gongfa = gongfaBest();
+  return S;
+};
+const gongfaById = function(id){ var g = GONGFA.filter(function(x){return x.id===id;}); return g.length? g[0]:null; };
+const rootById = function(id){ var r = ROOTS.filter(function(x){return x.id===id;}); return r.length? r[0]:null; };
+const gongfaBest = function(){
+  var best='jichu', bm=0;
+  for(var id in S.items){
+    var it = ITEMS[id];
+    if(it && it.cat==='gongfa'){
+      var g = gongfaById(id);
+      if(g && g.mult>bm){ bm=g.mult; best=id; }
+    }
+  }
+  var cur = gongfaById(S.gongfa);
+  var g2 = gongfaById(best);
+  if(cur && g2 && g2.mult>cur.mult) return best;
+  return S.gongfa;
+};
+const addItem = function(id,n){
+  if(!S.items[id]) S.items[id]=0;
+  S.items[id]+=n;
+  if(S.items[id]<=0) delete S.items[id];
+};
+const hasItem = function(id,n){ return (S.items[id]||0)>= (n||1); };
+const itemCount = function(){ var c=0; for(var k in S.items) c+=S.items[k]; return c; };
+const petObj = function(){ if(!S.pet) return null; return PETS[S.pet]||{name:S.pet, ic:'🐾', desc:''}; };
+const partnerObj = function(){ return S.partner? PARTNERS[S.partner]:null; };
+/* ================= FX 解析 ================= */
+const applyFx = function(arr){
+  if(!arr) return;
+  for(var i=0;i<arr.length;i++) applyToken(arr[i]);
+};
+const applyToken = function(tok){
+  tok = String(tok||'');
+  if(tok.indexOf('chance ')==0){
+    var m = tok.match(/^chance ([0-9.]+)\|(.*)$/);
+    if(m && Math.random()<parseFloat(m[1])){
+      var rest = m[2].split('|');
+      for(var j=0;j<rest.length;j++) applyToken(rest[j]);
+    }
+    return;
+  }
+  var p = tok.split(' ');
+  var cmd = p[0], a = p[1], b = p[2]?parseInt(p[2]):1;
+  var n = parseFloat(a);
+  if(cmd==='prog'){ S.progress = clamp(S.progress + n, 0, 100); }
+  else if(cmd==='mood'){ S.mood = clamp(S.mood+n, 0, 100); }
+  else if(cmd==='hp'){ S.hp = clamp(S.hp+n, 0, 100); }
+  else if(cmd==='karma'){ S.karma = clamp(S.karma+n, -100, 150); }
+  else if(cmd==='mo'){ S.mo = clamp(S.mo+n, 0, 100); }
+  else if(cmd==='wu'){ S.wu = clamp(S.wu+n, 5, 100); }
+  else if(cmd==='jiyuan'){ S.jiyuan = clamp(S.jiyuan+n, 0, 100); }
+  else if(cmd==='life'){ S.life = Math.max(0, S.life+n); }
+  else if(cmd==='ls'){ S.ls = Math.max(0, S.ls+n); if(n>0) S.stats.earn+=n; }
+  else if(cmd==='partnerLove'){ S.partnerLove = clamp(S.partnerLove+n, 0, 100); }
+  else if(cmd==='get'){ addItem(a, b); }
+  else if(cmd==='lose'){ addItem(a, -b); }
+  else if(cmd==='gongfa'){ if(a && a!==S.gongfa){ S.gongfa = a; sayLine('你参悟了功法《'+(gongfaById(a)?gongfaById(a).name:a)+'》，改修此法。','good'); if(gongfaById(a)&&gongfaById(a).mo){ S.mo=clamp(S.mo+3,0,100); sayLine('魔功噬心，魔障+3。','bad'); } } }
+  else if(cmd==='pet'){ if(a && !S.pet){ S.pet=a; unlockAchi('shou'); sayLine('『'+(PETS[a]?PETS[a].name:a)+'』成为了你的伙伴。','good'); } }
+  else if(cmd==='partner'){ if(a && !S.partner){ S.partner=a; S.partnerLove=30; unlockAchi('qing'); sayLine('你与'+(PARTNERS[a]?PARTNERS[a].name:a)+'结下了情缘。','good'); } }
+  else if(cmd==='sect'){ if(a){ S.sect=a; sayLine('你加入了『'+(SECTS[a]?SECTS[a].name:a)+'』。','good'); } }
+  else if(cmd==='flag'){ if(a) S.flags[a]=1; }
+  else if(cmd==='unflag'){ if(a) delete S.flags[a]; }
+  else if(cmd==='learn'){ if(a && !S.recipes[a]){ S.recipes[a]=1; var r = RECIPES.filter(function(x){return x.id===a;})[0]; sayLine('你学会了炼制「'+(r?r.name:a)+'」。','good'); } }
+  else if(cmd==='wuC'){ if(Math.random()<parseFloat(a) && S.wu<80){ S.wu++; sayLine('似有所悟，悟性+1（现为 '+S.wu+'）。','good'); } }
+  else if(cmd==='event'){ if(a) UI.queue.push(a); }
+  else if(cmd==='end'){ if(a) endRun(a); }
+  else if(cmd==='box'){ openBox(); }
+  else if(cmd==='eat' && a==='peach'){ eatPeach(); }
+};
+const openBox = function(){
+  var r = Math.random();
+  if(r<0.06){ addItem('longzhu',1); sayLine('木匣中静静躺着一枚温润的珠子，内中隐有龙吟——竟是一枚龙珠！','good'); }
+  else if(r<0.16){ addItem('dingshi',1); sayLine('木匣里是一枚替死玉符，做工精良，价值不菲！','good'); }
+  else if(r<0.4){ var ls = ri(30,150); S.ls+=ls; sayLine('木匣中只有一小堆灵石（+'+ls+'）。聊胜于无。','sys'); }
+  else if(r<0.8){ addItem('lingcao', ri(1,3)); sayLine('木匣里是几株受潮的灵草。也不算太亏。','sys'); }
+  else { sayLine('木匣里是一张字条：「恭喜你，成功被我骗了六十六灵石。——上一位买家留」','bad'); S.mood=clamp(S.mood-2,0,100); }
+};
+const eatPeach = function(){
+  S.flags.peachEat=1;
+  if(S.realm<7){
+    S.realm=7; S.life+=50000; S.progress=100; S.hp=clamp(S.hp+20,0,100);
+    sayLine('仙桃入腹，恐怖的能量在体内炸开！你竟直接跃至大乘圆满之境！','good');
+    checkAchiRealm();
+  } else { S.progress=100; }
+};
+
+/* ================= 显示 / 故事 ================= */
+const STORY_MAX = 60;
+const sayLine = function(text, cls){
+  if(!UI || !document.getElementById('story')) return;
+  var box = $('story');
+  var d = document.createElement('div');
+  d.className = 'line ' + (cls||'');
+  d.textContent = text;
+  box.appendChild(d);
+  while(box.children.length>STORY_MAX) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
+};
+const say = function(who, text, cls){
+  var s = '';
+  if(who) s = '<span class="who">'+esc(who)+'</span>';
+  if(!UI || !document.getElementById('story')) return;
+  var box = $('story');
+  var d = document.createElement('div');
+  d.className = 'line ' + (cls||'');
+  d.innerHTML = s + esc(text);
+  box.appendChild(d);
+  while(box.children.length>STORY_MAX) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
+};
+const toast = function(msg){
+  var t = $('toast');
+  var d = document.createElement('div');
+  d.className='toast';
+  d.textContent = msg;
+  t.appendChild(d);
+  setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 3200);
+};
+const openModal = function(html, wide){
+  var box = $('veilBox');
+  box.className = 'modal' + (wide?'':'');
+  box.innerHTML = html;
+  $('veil').classList.add('on');
+  UI.modal = true;
+};
+const closeModal = function(){
+  $('veil').classList.remove('on');
+  UI.modal = false;
+  $('veilBox').innerHTML = '';
+};
+/* ================= 事件驱动 ================= */
+const showChoices = function(ev){
+  var c = $('choices');
+  c.innerHTML = '';
+  UI.waiting = true;
+  for(var i=0;i<ev.choices.length;i++){
+    var ch = ev.choices[i];
+    var b = document.createElement('button');
+    b.className = 'choice' + (ch.cls?(' '+ch.cls):'');
+    var hint = ch.hint? ('<span class="hint">'+esc(ch.hint)+'</span>') : '';
+    b.innerHTML = esc(ch.t) + hint;
+    (function(choice){
+      b.onclick = function(){ resolveChoice(ev, choice); };
+    })(ch);
+    c.appendChild(b);
+  }
+};
+const resolveChoice = function(ev, ch){
+  UI.waiting = false;
+  $('choices').innerHTML = '';
+  var ok = true;
+  if(ch.p!==undefined){ ok = Math.random() < ch.p; }
+  var fx = ok? ch.fx : (ch.fxFail||[]);
+  applyFx(fx);
+  if(ch.log) sayLine(ch.log, ok?'':'bad');
+  else if(!ok && ch.fxFail) sayLine('……事与愿违。','bad');
+  nextEventOrTurn();
+};
+const pushEventById = function(id){
+  var ev = findEvent(id);
+  if(ev) UI.queue.push(id);
+  nextEventOrTurn();
+};
+const findEvent = function(id){
+  var all = EV_ALL;
+  for(var i=0;i<all.length;i++) if(all[i].id===id) return all[i];
+  return null;
+};
+const startEvent = function(ev){
+  UI.currentEvent = ev;
+  if(ev.who) say(ev.who, ev.text, 'tell');
+  else sayLine(ev.text, 'tell');
+  showChoices(ev);
+};
+const nextEventOrTurn = function(){
+  if(UI.queue.length){
+    var id = UI.queue.shift();
+    var ev = findEvent(id);
+    if(ev){ startEvent(ev); return; }
+  }
+  UI.currentEvent = null;
+  finalizeTurn();
+};
+const eventReady = function(ev){
+  if(!ev) return false;
+  if(ev.auto) return false;
+  if(ev.once && S.once[ev.id]) return false;
+  if(ev.min!==undefined && S.realm<ev.min) return false;
+  if(ev.cond && !ev.cond()) return false;
+  return true;
+};
+/* ===== 程序化随机事件（场景×遭遇×抉择，组合出数百种变体） ===== */
+const DY_LOC = ['幽深古林','千年雪原','荒漠绿洲','断魂崖下','地底溶洞','海外孤岛','雷泽之畔','枯骨战场','桃花溪谷','九天云海'];
+const DY_TYPES = [
+ {t:'无主宝物', w:10, kind:'treasure', text:function(L){return '你在'+L+'游历，忽见前方毫光冲霄。扒开枯枝一看，竟是一件无主之物！';},
+  choices:[
+   {t:'上前收取', fx:['chance 0.45|ls 130','chance 0.3|get bainian 1','chance 0.2|hp -10','chance 0.05|get longzhu'], log:'你收了宝物，满心欢喜地继续赶路。'},
+   {t:'先探查四周有无埋伏', fx:['jiyuan 3','mood 2'], log:'你谨慎观望片刻，确认无诈后才上前拾取。'},
+   {t:'记下方位，改日再来', fx:['jiyuan 6'], log:'你留了个记号，悄然离去。'}
+  ]},
+ {t:'上古残阵', w:10, kind:'array', text:function(L){return L+'之中，你误入一座上古残阵。阵纹明灭，隐隐传来仙音，仿佛封印着某种传承。';},
+  choices:[
+   {t:'静心参悟阵纹', fx:['chance 0.5|prog 12','chance 0.5|mood -4'], log:'你盘膝参悟，半日方醒，似有所得。'},
+   {t:'强行破阵而出', fx:['chance 0.6|ls 80','chance 0.4|hp -15'], log:'你以力破阵，灰头土脸地闯了出来。'},
+   {t:'绕道而行，不碰为妙', fx:['mood 3'], log:'你识趣地绕开了这座诡异的残阵。'}
+  ]},
+ {t:'垂危散修', w:10, kind:'npc', text:function(L){return L+'中，你遇到一位气息奄奄的散修，他见你前来，如见救命稻草。';},
+  choices:[
+   {t:'出手相救', cls:'good', fx:['chance 0.5|karma 4','chance 0.3|ls 60','chance 0.2|hp -8'], log:'你费尽心力，总算保住了他的性命。'},
+   {t:'问清缘由再做打算', fx:['jiyuan 3','wuC 0.2'], log:'他断断续续道出此地秘辛，你听得暗自心惊。'},
+   {t:'取走他的储物袋', fx:['ls 90','karma -6','mo 4'], log:'荒野无人，你取物后头也不回地离去。'}
+  ]},
+ {t:'妖兽拦路', w:12, kind:'beast', text:function(L){return L+'中，一头浑身浴血的妖兽挡住了你的去路，低吼着，眼中满是敌意。';},
+  choices:[
+   {t:'上前一战', fx:['chance 0.5|get shouhe 1','chance 0.25|ls 100','chance 0.25|hp -18'], log:'一番苦战，你终将其斩杀，也受了几处轻伤。'},
+   {t:'避其锋芒，绕道而行', fx:['mood 2'], log:'你收敛气息，从旁绕了过去。'},
+   {t:'试着安抚它的情绪', fx:['chance 0.35|karma 3','chance 0.35|pet wolf','chance 0.3|hp -6'], log:'你轻声安抚，那妖兽竟渐渐安静下来。'}
+  ]},
+ {t:'灵泉一眼', w:10, kind:'spring', text:function(L){return L+'深处，你发现一眼灵气氤氲的灵泉，泉边青苔上结着一层薄薄的灵晶。';},
+  choices:[
+   {t:'饮泉炼化', fx:['prog 10','hp 8','mood 4'], log:'灵泉入腹，如饮甘露，浑身说不出的舒泰。'},
+   {t:'采集灵晶', fx:['get kuang 1'], log:'你小心刮下灵晶，收进玉盒。'},
+   {t:'在泉边小憩半日', fx:['hp 15','mood 6'], log:'你在泉边睡了个好觉，醒来神清气爽。'}
+  ]},
+ {t:'诡异迷雾', w:10, kind:'fog', text:function(L){return L+'忽然大雾弥漫，伸手不见五指。雾中似有低语，亦似有人唤你的名字。';},
+  choices:[
+   {t:'循声而去', fx:['chance 0.4|prog 10','chance 0.3|jiyuan 5','chance 0.3|hp -12'], log:'你在雾中摸索良久，雾散时已在另一处陌生之地。'},
+   {t:'原地打坐，静待雾散', fx:['mood 4'], log:'你抱元守一，待大雾散尽，天已放晴。'},
+   {t:'高声喝问来者何人', fx:['chance 0.5|wuC 0.3','chance 0.5|mood -3'], log:'你的喝声在雾中回荡，久久无人应答。'}
+  ]},
+ {t:'古修遗府', w:9, kind:'ruin', text:function(L){return L+'中，一座半塌的古修士洞府若隐若现，门上刻着几个模糊的古字。';},
+  choices:[
+   {t:'破门而入', fx:['chance 0.3|get qingfeng','chance 0.25|get juzhen','chance 0.2|prog 14','chance 0.25|hp -16'], log:'洞府中机关与机缘并存，你满载而出。'},
+   {t:'在门外拜了三拜', fx:['karma 3','mood 2'], log:'你恭敬三拜，以示对前辈的敬意。'},
+   {t:'封住洞口，不扰先人', fx:['karma 4'], log:'你以巨石封洞，默默离去。'}
+  ]},
+ {t:'绝世奇花', w:10, kind:'flower', text:function(L){return L+'中，一株九叶奇花迎风怒放，异香扑鼻。你隐约感到，此花并非凡品。';},
+  choices:[
+   {t:'小心采下', fx:['get zhuguo 1'], log:'你以玉匣收好奇花，日后炼药定有大用。'},
+   {t:'就地炼化吸收', fx:['prog 12','hp 6'], log:'你盘膝炼化，只觉灵气汹涌入体。'},
+   {t:'不采不取，留待有缘', fx:['karma 4','jiyuan 2'], log:'你暗叹一声，转身离开。'}
+  ]},
+ {t:'神秘商人', w:9, kind:'merchant', text:function(L){return L+'中，一位斗笠遮面的商人拦住去路，低声问你要不要看看“不该出现在这里的东西”。';},
+  choices:[
+   {t:'看看他卖什么', fx:['box'], log:'他递来一只木匣，示意你付灵石。'},
+   {t:'问价后摇头离开', fx:['mood 1'], log:'他耸耸肩，转身消失在雾中。'},
+   {t:'试探他的底细', fx:['chance 0.5|wuC 0.3','chance 0.5|mo 3'], log:'那人笑而不语，只留给你一个意味深长的眼神。'}
+  ]},
+ {t:'无名石碑', w:10, kind:'stone', text:function(L){return L+'中，一方无字石碑孤零零立着，碑面光洁如镜，竟照不出你的影子。';},
+  choices:[
+   {t:'以手抚碑，用心感悟', fx:['chance 0.45|wuC 0.5','chance 0.35|mood 6','chance 0.2|mo 4'], log:'你闭目感悟，心头掠过一丝明悟。'},
+   {t:'绕着石碑转了三圈', fx:['jiyuan 2'], log:'石碑纹丝不动，你讪讪离去。'},
+   {t:'把碑文拓下来', fx:['get kuang 1'], log:'你拓下碑上隐约的纹路，日后或可参详。'}
+  ]},
+ {t:'仙鹤引路', w:8, kind:'crane', text:function(L){return L+'之上，一只白鹤盘旋数圈，竟落于你肩头，似要引你去往某处。';},
+  choices:[
+   {t:'随仙鹤而行', fx:['chance 0.4|prog 12','chance 0.3|jiyuan 8','chance 0.3|mood 4'], log:'你随鹤而行，来到一处灵气浓郁的山坳。'},
+   {t:'谢过仙鹤，独自上路', fx:['mood 3'], log:'白鹤轻鸣一声，振翅而去。'},
+   {t:'喂它几粒丹药', fx:['lose heal 1','karma 3'], log:'仙鹤啄了丹药，亲昵地蹭了蹭你的手心。'}
+  ]},
+ {t:'机缘一线', w:7, kind:'luck', text:function(L){return L+'中，你忽然心血来潮，福至心灵，似有大事将要发生。';},
+  choices:[
+   {t:'抓住这一线天机', fx:['chance 0.3|wu 1','chance 0.4|prog 15','chance 0.3|jiyuan 6'], log:'你循着那一丝感应，果然有所收获。'},
+   {t:'静观其变', fx:['mood 5'], log:'你按兵不动，心境反倒愈发平和。'},
+   {t:'掐指推演吉凶', fx:['chance 0.5|wuC 0.3','chance 0.5|mood -2'], log:'天机晦涩，你只推演出一个模糊的方向。'}
+  ]}
+];
+const makeDynamicEvent = function(tag){
+  if(tag!=='walk' && tag!=='explore' && tag!=='wander' && tag!=='any') return null;
+  var L = pick(DY_LOC);
+  var ty = pick(DY_TYPES);
+  var txt = ty.text(L);
+  var id = 'dy_' + L.length + '_' + ty.kind;
+  return {id:id, min:0, w:4, type:'any', once:false, auto:false, text:txt, choices:ty.choices.slice(), dyn:true};
+};
+const pickEventByTag = function(tag){
+  if((tag==='walk'||tag==='explore'||tag==='wander'||tag==='any') && Math.random()<0.3){
+    var dp=[];
+    for(var d2=0; d2<8; d2++){ var de=makeDynamicEvent(tag); if(de) dp.push(de); }
+    if(dp.length) return dp[Math.floor(Math.random()*dp.length)];
+  }
+  var pool = [];
+  for(var i=0;i<EV_ALL.length;i++){
+    var ev = EV_ALL[i];
+    if(!eventReady(ev)) continue;
+    if(ev.type===tag || ev.type==='any') pool.push(ev);
+  }
+  if(tag==='walk'||tag==='explore'||tag==='wander'||tag==='any'){
+    for(var d3=0; d3<6; d3++){
+      var de2 = makeDynamicEvent(tag);
+      if(de2) pool.push(de2);
+    }
+  }
+  if(!pool.length) return null;
+  var total=0;
+  for(var j=0;j<pool.length;j++) total += (pool[j].w||1);
+  var r = Math.random()*total;
+  for(var k=0;k<pool.length;k++){
+    r -= (pool[k].w||1);
+    if(r<=0){ var hit=pool[k]; if(hit.once) S.once[hit.id]=1; return hit; }
+  }
+  var last=pool[pool.length-1]; if(last.once) S.once[last.id]=1; return last;
+};
+const maybeRandomEvent = function(tag, p){
+  if(Math.random()<p){
+    var ev = pickEventByTag(tag);
+    if(ev){ UI.queue.push(ev.id); return true; }
+  }
+  return false;
+};
+/* ================= 行动 ================= */
+const timePass = function(y){
+  S.age += y; S.life -= y;
+};
+const cultGain = function(mult){
+  var root = rootById(S.rootId);
+  var gf = gongfaById(S.gongfa) || gongfaById('jichu');
+  var m = root? root.mult : 1;
+  var moodF = 0.7 + S.mood/100*0.6;
+  var buff = 1;
+  if(hasItem('juzhen',1)) buff += 0.25;
+  if(S.partner && S.partnerLove>=60) buff += 0.15;
+  if(S.pet==='qingluan') buff += 0.1;
+  var base = (7 + S.wu*0.13) * gf.mult * m * moodF * buff;
+  var bottleneck = S.progress>80 ? 0.55 : 1;
+  var g = base * mult * bottleneck;
+  if(S.realm===0) g = g*0.5;
+  if(gf.mo) S.mo = clamp(S.mo + 0.6*mult, 0, 100);
+  if(gf.hp) S.hp = clamp(S.hp + 1.5*mult, 0, 100);
+  return g;
+};
+const doAction = function(id){
+  if(UI.waiting || UI.modal || !S) return;
+  var a = null;
+  for(var i=0;i<ACTIONS.length;i++) if(ACTIONS[i].id===id){ a=ACTIONS[i]; break; }
+  if(!a) return;
+  var yn = a.tm;
+  if(id==='market' || id==='giveup') yn = 0;
+  timePass(yn);
+  S.stats.acts++;
+  sayLine('━━ ' + a.ic + ' ' + a.name + ' ━━（'+yn+'年）','sys');
+  var evTag = null, evP = 0;
+  if(id==='cultivate'){
+    var g = cultGain(1);
+    S.progress = clamp(S.progress+g,0,100);
+    S.mood = clamp(S.mood-1.2,0,100);
+    sayLine('静坐吐纳，修为精进（+'+g.toFixed(1)+'）。','good');
+    evTag='any'; evP=0.1;
+  }
+  else if(id==='seclude'){
+    var g2 = cultGain(2.6);
+    S.progress = clamp(S.progress+g2,0,100);
+    S.mood = clamp(S.mood-5,0,100);
+    S.hp = clamp(S.hp-2,0,100);
+    sayLine('闭关苦修，修为大进（+'+g2.toFixed(1)+'），只是心中略感孤寂。','good');
+    evTag='any'; evP=0.15;
+  }
+  else if(id==='comprehend'){
+    var g3 = cultGain(0.35);
+    S.progress = clamp(S.progress+g3,0,100);
+    S.mood = clamp(S.mood+3,0,100);
+    if(Math.random()<0.14 && S.wu<80){ S.wu++; sayLine('参悟道法，豁然开朗，悟性+1。','good'); }
+    else sayLine('静坐参玄，道心愈坚，修为略进（+'+g3.toFixed(1)+'）。','sys');
+    evTag='any'; evP=0.1;
+  }
+  else if(id==='walk'){
+    S.mood = clamp(S.mood+2,0,100);
+    S.ls += 25; S.stats.earn+=25;
+    sayLine('行走人间，看尽烟火，得灵石若干（+25）。','sys');
+    evTag='walk'; evP=0.8;
+  }
+  else if(id==='explore'){
+    S.hp = clamp(S.hp-3,0,100);
+    sayLine('深入秘境，草木皆兵，你小心探索着……','sys');
+    evTag='explore'; evP=0.9;
+  }
+  else if(id==='wander'){
+    S.hp = clamp(S.hp-2,0,100);
+    S.mood = clamp(S.mood+2,0,100);
+    sayLine('云游四方，天地为卷，步履丈量山河。','sys');
+    evTag='wander'; evP=0.85;
+  }
+  else if(id==='market'){ openShop(); return; }
+  else if(id==='refine'){ openRefine(); return; }
+  else if(id==='rest'){
+    S.hp = clamp(S.hp+20,0,100);
+    S.mood = clamp(S.mood+4,0,100);
+    sayLine('卸下凡尘，好生歇了一觉，气血与心境都恢复了不少。','good');
+    evTag='any'; evP=0.05;
+  }
+  else if(id==='social'){ doSocial(); evTag='social'; evP=0.25; }
+  else if(id==='sect'){ doSect(); evTag='sect'; evP=0.3; }
+  else if(id==='sleep'){ doSleep(); return; }
+  else if(id==='found'){ doFound(); return; }
+  else if(id==='giveup'){ doGiveup(); return; }
+  if(evTag){ maybeRandomEvent(evTag, evP); }
+  nextEventOrTurn();
+};
+const doSocial = function(){
+  S.mood = clamp(S.mood+3,0,100);
+  if(S.partner){
+    var r = Math.random();
+    if(r<0.4){ S.partnerLove = clamp(S.partnerLove+5,0,100); sayLine('与'+partnerObj().name+'品茶论道，情意更笃。','good'); }
+    else if(r<0.7){ var g = cultGain(0.8); S.progress=clamp(S.progress+g,0,100); sayLine('与道侣交流修行心得，互有启发（+'+g.toFixed(1)+'）。','good'); }
+    else sayLine('与'+partnerObj().name+'于山间漫步，岁月静好。','sys');
+  } else {
+    var r2 = Math.random();
+    if(r2<0.3){ sayLine('与几位散修煮酒论道，虽萍水相逢，亦是一乐。','sys'); }
+    else if(r2<0.5){ var g2=cultGain(0.5); S.progress=clamp(S.progress+g2,0,100); sayLine('席间一位前辈无意间点拨了几句，你似有所悟（+'+g2.toFixed(1)+'）。','good'); }
+    else sayLine('访友不遇，倒是赏了一路山花。','sys');
+  }
+};
+const doSect = function(){
+  if(!S.sect){
+    sayLine('你乃无门无派的散修，并无宗门事务可做。','sys');
+    return;
+  }
+  var base = 40 + S.realm*25;
+  var s = SECTS[S.sect];
+  if(s.kind==='正道'){ S.karma = clamp(S.karma+1, -100, 150); }
+  else if(s.kind==='魔道'){ S.mo = clamp(S.mo+2,0,100); S.karma = clamp(S.karma-1,-100,150); }
+  S.ls += base; S.stats.earn += base;
+  sayLine('为『'+s.name+'』奔走操持，得月例灵石（+'+base+'）。','sys');
+};
+const openRefine = function(){
+  var rows = [];
+  var known = [];
+  for(var i=0;i<RECIPES.length;i++){
+    var r = RECIPES[i];
+    if(!S.recipes[r.id]) continue;
+    var needArr = [];
+    var ok = true;
+    for(var mat in r.need){
+      var nm = ITEMS[mat]?ITEMS[mat].name:mat;
+      needArr.push(nm+'×'+r.need[mat]);
+      if(!hasItem(mat, r.need[mat])) ok=false;
+    }
+    rows.push('<div class="shopRow"><span class="sn">'+r.name+'（'+needArr.join('，')+'）</span><span class="si"><button class="sbtn" id="rf-'+r.id+'" '+(ok?'':'disabled')+'>炼制</button></span></div>');
+  }
+  if(!rows.length){
+    rows.push('<p style="color:var(--ink-faint)">你尚未掌握任何丹方，或已无材可炼。</p>');
+  }
+  var html = '<h2>⚗️ 炼丹</h2>'+rows.join('')+'<button class="close" id="closeModalBtn">离开丹房</button>';
+  openModal(html);
+  $('closeModalBtn').onclick = function(){ closeModal(); };
+  for(var j=0;j<RECIPES.length;j++){
+    var rid = RECIPES[j].id;
+    var btn = $('rf-'+rid);
+    if(btn){
+      (function(rid2){
+        btn.onclick = function(){ doRefine(rid2); };
+      })(rid);
+    }
+  }
+};
+const doRefine = function(rid){
+  var r = RECIPES.filter(function(x){return x.id===rid;})[0];
+  if(!r) return;
+  for(var mat in r.need){ if(!hasItem(mat, r.need[mat])){ toast('材料不足'); return; } }
+  for(var mat2 in r.need){ addItem(mat2, -r.need[mat2]); }
+  var succ = 0.62 + S.wu*0.004 + (S.realm>=2?0.1:0);
+  if(S.flags.alchMaster) succ += 0.08;
+  if(Math.random()<succ){
+    addItem(rid, 1);
+    S.stats.refine++;
+    sayLine('丹成！你炼出了一枚「'+(ITEMS[rid]?ITEMS[rid].name:rid)+'」。','good');
+    if(S.stats.refine>=10) unlockAchi('dan');
+  } else {
+    sayLine('火候失控，一炉丹药尽数报废……','bad');
+  }
+  closeModal();
+  nextEventOrTurn();
+};
+
+/* 补充两个结局 */
+ENDINGS.zuohua = {name:'坐化归尘', cat:'尘缘', tag:'生死',
+ hint:'未能觅得大道，于大限之日坐化。',
+ ep:'{age}岁那年，{name}自知大限将至，沐浴更衣，于蒲团上跏趺而坐。「此生求道，虽未得长生，亦不曾虚度。」{name}含笑闭目。三日后，弟子们推门而入，只见满室檀香，{name}肉身栩栩如生，嘴角犹带笑意。世人谓之「坐化」，是修行人最好的归宿。'};
+ENDINGS.peach_ascend = {name:'仙桃证道', cat:'飞升', tag:'隐藏',
+ hint:'？（隐藏结局：食蟠桃后飞升）',
+ ep:'一枚蟠桃，省却千年苦修。{name}立于山巅，周身仙光缭绕，衣袂无风自动。九天之上，天门轰然洞开，垂下万道霞光。「别人问道百年，我问道……一个桃子。」{name}轻笑一声，踏光而上。自此仙界流传着一句话：修行不努力，桃子来凑数。'};
+/* ================= 商店 ================= */
+const shopStock = function(){
+  var list = [];
+  var push = function(id, price){ list.push({id:id, price:price}); };
+  push('lingcao', 12); push('bainian', 55); push('zhuguo', 160);
+  push('heal', 45); push('qingxin', 95); push('juling', 130);
+  if(Math.random()<0.75) push('peiyuan', 170);
+  if(Math.random()<0.5) push('pozhao', 420);
+  if(Math.random()<0.45) push('yanshou', 820);
+  if(Math.random()<0.3) push('xisui', 1500);
+  if(Math.random()<0.28) push('hufu', 380);
+  if(Math.random()<0.16) push('bileizhu', 1900);
+  if(Math.random()<0.2) push('qingfeng', 1800);
+  if(Math.random()<0.18) push('juzhen', 1400);
+  if(Math.random()<0.12) push('shehunling', 1000);
+  if(Math.random()<0.14) push('dingshi', 3000);
+  push('muyu', 66);
+  if(S.mo>=30 && Math.random()<0.5) push('wanmo', 2000);
+  if(Math.random()<0.06) push('longzhu', 66666);
+  var uniq = [];
+  for(var i=0;i<list.length;i++){ if(uniq.indexOf(list[i].id)<0) uniq.push(list[i].id); }
+  var res = [];
+  for(var j=0;j<uniq.length;j++) res.push({id:uniq[j], price:list.filter(function(x){return x.id===uniq[j];})[0].price});
+  return res;
+};
+const itemName = function(id){ return ITEMS[id]?ITEMS[id].name:id; };
+const openShop = function(){
+  var stock = shopStock();
+  var buyRows = '';
+  for(var i=0;i<stock.length;i++){
+    var st = stock[i];
+    var it = ITEMS[st.id];
+    if(!it) continue;
+    var flag = '';
+    if(it.cat==='丹') flag='（丹药）';
+    else if(it.cat==='宝') flag='（宝物）';
+    else if(it.cat==='秘') flag='（？？）';
+    buyRows += '<div class="shopRow"><span class="sn">'+it.ic+' '+itemName(st.id)+flag+'<br><small style="color:var(--ink-faint)">'+esc(it.desc)+'</small></span><span class="sp">'+st.price+' 灵石</span><span class="si"><button class="sbtn" id="buy-'+st.id+'" '+(S.ls>=st.price?'':'disabled')+'>购入</button></span></div>';
+  }
+  var sellRows = '';
+  for(var k in S.items){
+    var it2 = ITEMS[k];
+    if(!it2 || it2.price===undefined) continue;
+    var sp = Math.floor(it2.price*0.55);
+    sellRows += '<div class="shopRow"><span class="sn">'+it2.ic+' '+it2.name+' ×'+S.items[k]+'</span><span class="sp">'+sp+'/个</span><span class="si"><button class="sbtn" id="sell-'+k+'">出售</button></span></div>';
+  }
+  if(!sellRows) sellRows='<p style="color:var(--ink-faint)">无可售之物。</p>';
+  var html = '<h2>🏮 坊市</h2><h3>你的灵石：'+S.ls+'</h3><h3>—— 购入 ——</h3>'+buyRows+'<h3>—— 出售 ——</h3>'+sellRows+'<button class="close" id="closeModalBtn">离开坊市</button>';
+  openModal(html);
+  $('closeModalBtn').onclick = function(){ closeModal(); };
+  for(var m=0;m<stock.length;m++){
+    var bid = stock[m].id;
+    var bb = $('buy-'+bid);
+    if(bb){
+      (function(id2, price2){
+        bb.onclick = function(){
+          if(S.ls<price2){ toast('灵石不足'); return; }
+          S.ls-=price2;
+          if(id2==='muyu'){ addItem('muyu',1); sayLine('你买下一只神秘木匣（66灵石）。','sys'); }
+          else if(id2==='wanmo'){ if(S.gongfa!=='wanmo'){ S.gongfa='wanmo'; S.mo=clamp(S.mo+3,0,100); sayLine('你习得《万古魔典》！进境将一日千里，然魔障亦会加深（魔障+3）。','pur'); } }
+          else { addItem(id2,1); }
+          openShop(); refreshAll();
+        };
+      })(bid, stock[m].price);
+    }
+  }
+  for(var n in S.items){
+    var sbtn = $('sell-'+n);
+    if(sbtn){
+      (function(id3){
+        sbtn.onclick = function(){
+          var it3 = ITEMS[id3]; if(!it3) return;
+          var sp3 = Math.floor(it3.price*0.55);
+          S.ls+=sp3; S.stats.earn+=sp3;
+          addItem(id3,-1);
+          sayLine('售出「'+it3.name+'」，得 '+sp3+' 灵石。','sys');
+          openShop(); refreshAll();
+        };
+      })(n);
+    }
+  }
+};
+const useItem = function(id){
+  var it = ITEMS[id];
+  if(!it || it.cat!=='丹') return;
+  if(!hasItem(id,1)) return;
+  var used = true;
+  if(id==='heal'){ S.hp=clamp(S.hp+30,0,100); }
+  else if(id==='juling'){ var g = cultGain(1.2); S.progress=clamp(S.progress+g,0,100); sayLine('聚灵丹入腹，灵力奔涌，修为精进（+'+g.toFixed(1)+'）。','good'); }
+  else if(id==='qingxin'){ S.mood=clamp(S.mood+25,0,100); }
+  else if(id==='peiyuan'){ S.hp=clamp(S.hp+40,0,100); S.life+=1; }
+  else if(id==='yanshou'){ S.life+=20; sayLine('延寿丹入腹，你只觉命火重燃，寿元+20。','good'); }
+  else if(id==='xisui'){
+    S.wu=clamp(S.wu+8,5,100);
+    var root = rootById(S.rootId);
+    if(root && root.id==='wei'){ S.rootId='shuang'; sayLine('洗髓伐毛！你的伪灵根竟被重塑为双灵根，资质大涨！','good'); }
+    else sayLine('洗髓丹入腹，易经洗髓，悟性+8（现为 '+S.wu+'）。','good');
+  }
+  else { used=false; }
+  if(used){
+    addItem(id,-1);
+    if(id==='heal') sayLine('你服下疗伤丹，气血回升。','good');
+    if(id==='qingxin') sayLine('你服下清心丹，灵台一片清明。','good');
+    refreshAll();
+  }
+};
+/* ================= 境界成就 ================= */
+const checkAchiRealm = function(){
+  var map = {1:'first',2:'zj',3:'jd',4:'yy',5:'hs',6:'lx',7:'dc'};
+  if(map[S.realm]) unlockAchi(map[S.realm]);
+  if(S.karma>=100) unlockAchi('shan');
+  if(S.mo>=80) unlockAchi('mo');
+  if(S.jiyuan>=80) unlockAchi('jixing');
+  if(S.stats.earn>=10000) unlockAchi('rich');
+  if(itemCount()>=10) unlockAchi('bao');
+};
+/* ================= 回合收尾 ================= */
+const finalizeTurn = function(){
+  if(S && !S.ended) saveRun();
+  refreshAll();
+  checkAchiRealm();
+  if(S.life<=0){ deathResolve('life'); return; }
+  if(S.hp<=0){ deathResolve('hp'); return; }
+  if(S.mo>=100){ endRun('heart_possess'); return; }
+  if(S.mood<=0){
+    S.mood = 0;
+    if(S.mo>=20){
+      var ev = findEvent('heart_demon');
+      if(ev){ startEvent(ev); return; }
+    } else {
+      S.mood=6; S.hp=clamp(S.hp-8,0,100);
+      sayLine('心绪翻涌，几乎走火入魔！你强自按捺，冷汗涔涔。','bad');
+      refreshAll();
+    }
+  }
+  refreshAll();
+};
+const deathResolve = function(cause){
+  endRun(pickDeathEnding(cause));
+};
+/* ================= 冲关 / 渡劫 ================= */
+const canBreak = function(){ return S && S.progress>=100 && !UI.waiting && !UI.modal && !S.ended; };
+const startBreakthrough = function(){
+  if(!canBreak()) return;
+  if(S.realm===0){
+    if(S.mood<20 && chance(0.25)){
+      S.progress=72; S.mood=0; S.hp=clamp(S.hp-8,0,100);
+      sayLine('引气之际，杂念丛生，真气走岔！你强压伤势，险些走火入魔。','bad');
+      refreshAll(); return;
+    }
+    say('','冥冥中福至心灵，你终于捕捉到那一缕天地灵气！','tell');
+    advanceRealm(); return;
+  }
+  if(S.realm===1){
+    if(S.mood<20 && chance(0.15)){
+      S.progress=80; S.mood=clamp(S.mood-6,0,100); S.hp=clamp(S.hp-6,0,100);
+      sayLine('筑基功亏一篑！道基震颤，你不得不重新稳固境界。','bad');
+      refreshAll(); return;
+    }
+    say('','道基渐稳，你盘膝而坐，将体内灵气压缩、凝练……','tell');
+    advanceRealm(); return;
+  }
+  if(S.realm===7){
+    startAscension(); return;
+  }
+  var target = REALMS[S.realm+1];
+  if(target && target.trib){
+    runTrib(S.realm+1, function(){ advanceRealm(); }, function(){ tribFail(); });
+  } else {
+    advanceRealm();
+  }
+};
+const advanceRealm = function(){
+  var old = S.realm;
+  var isFirst = old===0;
+  S.realm++;
+  S.progress = 0;
+  var bonus = REALMS[S.realm]?REALMS[S.realm].life:0;
+  S.life += bonus;
+  S.mood = clamp(S.mood-2,0,100);
+  if(S.pet==='xuangui') S.life += 2;
+  var nm = REALMS[S.realm].name;
+  S.stats.breakthrough++;
+  say('','✨ 破境成功——你已踏入「'+nm+'」之境！寿元增加 '+bonus+' 载。','good');
+  checkAchiRealm();
+  if(S.realm===1 && isFirst){
+    say('','自此，你正式踏上修仙之路。天地广阔，大道在前。','tell');
+  }
+  refreshAll();
+};
+const tribFail = function(){
+  S.progress = 72;
+  S.hp = clamp(S.hp-12,0,100);
+  S.mood = clamp(S.mood-12,0,100);
+  if(S.realm>=6) S.life = Math.max(1, S.life-15);
+  sayLine('雷劫散去，你瘫坐于焦土之上，气息奄奄。渡劫失败，道基受创……','bad');
+  refreshAll();
+};
+const waveTexts = {
+  thunder:{t:'天雷劫', d:'苍穹之上劫云翻涌，第一道天雷已蓄势待发。雷光如龙，携毁天灭地之威轰然劈落！'},
+  heart:{t:'心魔劫', d:'雷声未歇，心魔骤生。你此生最深的执念与恐惧化作幻象，在你识海中疯狂嘶吼，欲将你拖入无边黑暗。'},
+  wind:{t:'风火劫', d:'九幽罡风裹挟着焚天业火自四面八方涌来，灼烧肉身，刮骨剔髓。每一息，都如置身炼狱。'}
+};
+const runTrib = function(targetIdx, onWin, onLose){
+  var type = REALMS[targetIdx]?REALMS[targetIdx].trib:'mid';
+  var seq = ['thunder','heart','wind'];
+  var successes = 0, wave = 0;
+  var hufuUsed = false;
+  var baseP = function(){
+    var root = rootById(S.rootId);
+    var p = 0.55 + (S.hp-50)/300 + (root&&root.trib? -root.trib:0) + (S.mood-50)/220 - S.mo/280;
+    if(type==='final' || type==='huge') p -= 0.06;
+    return clamp(p, 0.12, 0.94);
+  };
+  var adv = function(){
+    if(wave>=3){
+      closeModal();
+      if(successes>=2) onWin(); else onLose();
+      return;
+    }
+    var wt = seq[wave];
+    var w = waveTexts[wt];
+    var p = baseP();
+    var opts = '';
+    opts += '<button class="choice" id="tw-hard">以道心硬撼（约'+(Math.round(p*100))+'%）</button>';
+    if(hasItem('bileizhu',1)){
+      opts += '<button class="choice good" id="tw-lei">祭出避雷珠（约'+(Math.round(Math.min(0.95,p+0.18)*100))+'%，不消耗）</button>';
+    }
+    if(hasItem('pozhao',1)){
+      opts += '<button class="choice good" id="tw-dan">服破障丹（约'+(Math.round(Math.min(0.96,p+0.22)*100))+'%，消耗一枚）</button>';
+    }
+    if(wt==='heart' && hasItem('qingxin',1)){
+      opts += '<button class="choice" id="tw-qing">诵清心诀护道心（约'+(Math.round(Math.min(0.96,p+0.15)*100))+'%，消耗一枚）</button>';
+    }
+    var extra = (type==='final')? '此乃最后一劫，成则飞升，败则道消！' : '';
+    openModal('<h2>⛈️ 渡劫 · '+(type==='small'?'小':type==='mid'?'中':type==='big'?'大':type==='huge'?'九重':type==='final'?'至圣':type==='ascend'?'天仙':'')+'天劫</h2><h3>第 '+(wave+1)+' / 3 波：'+w.t+'</h3><p>'+w.d+'</p><p style="color:var(--gold)">'+extra+'</p><div id="tribOpts">'+opts+'</div>');
+    var hard = $('tw-hard'), lei = $('tw-lei'), dan = $('tw-dan'), qing = $('tw-qing');
+    var tryP = function(pp, consume, label){
+      closeModal();
+      if(Math.random()<pp){
+        successes++; sayLine('『'+w.t+'』——你扛过去了！','good');
+      } else {
+        sayLine('『'+w.t+'』——'+label+'……','bad');
+        S.hp = clamp(S.hp-(type==='small'?8:14),0,100);
+        S.mood = clamp(S.mood-7,0,100);
+        if(type==='final'||type==='huge') S.life = Math.max(1,S.life-8);
+        if(S.hp<=0){
+          if(!hufuUsed && hasItem('dingshi',1)){ addItem('dingshi',-1); hufuUsed=true; S.hp=25; sayLine('替死玉符轰然碎裂，替你挡下了致命一击！','good'); }
+          else { closeModal(); endRun('trib_death'); return; }
+        }
+      }
+      if(consume==='pozhao') addItem('pozhao',-1);
+      if(consume==='qingxin') addItem('qingxin',-1);
+      wave++;
+      adv();
+    };
+    if(hard) hard.onclick = function(){ tryP(p, null, '天威难测，你受了重创'); };
+    if(lei) lei.onclick = function(){ tryP(Math.min(0.95,p+0.18), null, '避雷珠替你挡下大半雷威，仍被余劲震伤'); };
+    if(dan) dan.onclick = function(){ tryP(Math.min(0.96,p+0.22), 'pozhao', '丹药之力未能扭转乾坤'); };
+    if(qing) qing.onclick = function(){ tryP(Math.min(0.96,p+0.15), 'qingxin', '心魔竟突破了清心诀的防线'); };
+  };
+  adv();
+};
+
+/* ================= 飞升 ================= */
+const startAscension = function(){
+  runTrib(7, openAscensionChoice, function(){
+    tribFail();
+    sayLine('成圣劫下，你功亏一篑。所幸根基犹在，尚可再战。','bad');
+  });
+};
+const openAscensionChoice = function(){
+  say('','天门洞开，仙光垂落。你立于光柱之中，只消一步，便可褪去凡胎。然大道三千，何去何从，皆在你一念之间。','tell');
+  var opts = [];
+  if(S.flags.peachEat) opts.push({id:'peach_ascend', t:'🍑 循仙桃余韵飞升', d:'不劳而获？那也是本事。'});
+  if(S.mo>=45) opts.push({id:'ascend_demon', t:'🌑 踏入魔渊', d:'以魔证道，天地不仁，我自逍遥。'});
+  if(S.gongfa==='tiangang') opts.push({id:'ascend_sword', t:'🗡️ 一剑开天门', d:'剑修一世，当以此剑劈开天门。'});
+  if(S.partner && S.partnerLove>=70) opts.push({id:'couple', t:'🌸 携道侣双宿双飞', d:'长生路上，有你相伴，方不孤单。'});
+  if(S.pet && S.mood>=70) opts.push({id:'beast', t:'🐾 与灵宠共踏仙桥', d:'它等你这一刻，等了许多年。'});
+  if(S.flags.hero) opts.push({id:'immortal_return', t:'✨ 重登仙位（谪仙归位）', d:'尘封的记忆苏醒，你本就是天上客。'});
+  if(S.stats.refine>=8) opts.push({id:'alchemy_ascend', t:'⚗️ 以丹证道', d:'丹成九转，药香亦可开天门。'});
+  opts.push({id:'ascend', t:'☁️ 白日飞升（正道天门）', d:'功德圆满，循正途登仙。'});
+  opts.push({id:'retire_immortal', t:'🏮 留恋人世，不入仙门', d:'天上再好，不如人间一壶酒。'});
+  var rows = '';
+  for(var i=0;i<opts.length;i++){
+    rows += '<button class="choice" id="asc-'+i+'"><b>'+opts[i].t+'</b><span class="hint">'+opts[i].d+'</span></button>';
+  }
+  openModal('<h2>🌅 飞升在即</h2><p>九色仙光之中，大道之门已为你敞开。选择你的道：</p>'+rows);
+  for(var j=0;j<opts.length;j++){
+    (function(o){
+      var b = $('asc-'+j);
+      if(b) b.onclick = function(){ closeModal(); endRun(o.id==='ascend' ? pickAscendEnding() : o.id); };
+    })(opts[j]);
+  }
+};
+/* ================= 抉择结局 ================= */
+const doSleep = function(){
+  say('','你寻了一处灵气绝佳的洞府，设下禁制，缓缓合上双眼。这一睡，便是沧海桑田……','tell');
+  timePass(50);
+  endRun('merge_dao');
+};
+const doFound = function(){
+  if(S.realm<4){ sayLine('你道行尚浅，此时开宗立派，恐难服众。','bad'); return; }
+  say('','你寻得一座灵山福地，设坛立派，广收门徒。山门之上，你亲手题下匾额……','tell');
+  endRun('sect_founder');
+};
+const doGiveup = function(){
+  var endId = pickRetireEnding();
+  say('','你忽然觉得，长生不过是一场漫长的执念。山下的炊烟、桌上的热茶、那些等你的人……或许，才是更值得珍惜的东西。','tell');
+  endRun(endId);
+};
+/* ================= 结局收尾 ================= */
+const getPh = function(){
+  return {
+    name:S.name, age:S.age, life:S.life, ls:S.ls, karma:S.karma, mo:S.mo, wu:S.wu,
+    realm:REALMS[S.realm]?REALMS[S.realm].name:'?',
+    pet: petObj()? petObj().name:'灵宠',
+    partner: partnerObj()? partnerObj().name:'道侣',
+    gongfa: gongfaById(S.gongfa)? gongfaById(S.gongfa).name:'?'
+  };
+};
+const endRun = function(endId){
+  if(!S || S.ended) return;
+  S.ended = true;
+  UI.waiting = false;
+  $('choices').innerHTML = '';
+  closeModal();
+  var e = ENDINGS[endId];
+  if(!e) e = ENDINGS.mortal_dream;
+  unlockEnd(endId);
+  META.runs = (META.runs||0)+1;
+  saveMeta();
+  var hidden = (e.cat==='隐藏' || e.cat==='趣闻');
+  $('endTag').textContent = (hidden? '—— 隐 藏 结 局 ——' : '—— 一 世 终 局 ——');
+  $('endName').textContent = '「' + e.name + '」';
+  $('endEpithet').textContent = e.tag + ' · ' + (e.hint||'');
+  var phX = getPh();
+  var epX = e.ep ? fmt(e.ep, phX) : fmt((e.lead||'') + genericTail(phX), phX);
+  $('endStory').textContent = epX;
+  var stats = '修行'+S.age+'载 · 止步'+REALMS[S.realm].name+' · 功德'+S.karma+' · 魔障'+S.mo+' · 灵石'+S.ls+' · 悟性'+S.wu+' · 机缘'+S.jiyuan;
+  var extra = '';
+  if(e.cat==='隐藏' || e.cat==='趣闻') extra = '<br><span style="color:var(--gold)">🎉 你发现了一个隐藏结局！共解锁 '+countEnds()+' / '+Object.keys(ENDINGS).length+' 个结局。</span>';
+  $('endStats').innerHTML = '<b>'+stats+'</b>'+extra;
+  if(countEnds()>=5) unlockAchi('shi');
+  if(countEnds()>=10) unlockAchi('renjian');
+  if(countEnds()>=15) unlockAchi('da');
+  $('veil').style.zIndex = 80;
+  $('endScreen').classList.add('on');
+  refreshAll();
+};
+const goAgain = function(){
+  $('endScreen').classList.remove('on');
+  $('veil').style.zIndex = 40;
+  goTitle(true);
+};
+const goHome = function(){
+  $('endScreen').classList.remove('on');
+  $('veil').style.zIndex = 40;
+  goTitle(false);
+};
+/* ================= 界面渲染 ================= */
+const realmName = function(){ return REALMS[S.realm]?REALMS[S.realm].name:'?'; };
+const refreshAll = function(){
+  if(!S) return;
+  $('topname').textContent = S.name;
+  $('topbadge').textContent = realmName();
+  $('topyear').textContent = '年'+S.age+' · 寿余'+S.life;
+  renderStats();
+  renderBadges();
+  renderItems();
+  renderActions();
+  renderBtk();
+};
+const statRow = function(label, val, max, cls, num){
+  var pct = max? clamp(val/max*100,0,100):0;
+  return '<div class="stat"><div class="lab"><span>'+label+'</span><b class="num">'+num+'</b></div><div class="bar '+cls+'"><i style="width:'+pct.toFixed(1)+'%"></i></div></div>';
+};
+const renderStats = function(){
+  var h = '';
+  h += statRow('境界 · '+realmName(), S.progress, 100, 'gold', S.progress>=100?'圆满，可冲关':'进度 '+Math.floor(S.progress)+'%');
+  h += '<div class="lab" style="margin-top:6px"><span>寿元（岁 '+S.age+'）</span><b class="num">余 '+S.life+' 载</b></div>';
+  h += statRow('气血', S.hp, 100, 'red', S.hp+' / 100');
+  h += statRow('心境', S.mood, 100, 'pur', S.mood+' / 100');
+  if(S.karma!==0 || true){
+    var kc = S.karma>=0? 'blue':'red';
+    h += statRow('功德', Math.abs(S.karma), 150, kc, (S.karma>=0?'+':'')+S.karma);
+  }
+  if(S.mo>0) h += statRow('魔障', S.mo, 100, 'pur', S.mo+' / 100');
+  $('stats').innerHTML = h;
+  var info = '';
+  info += '<div style="display:flex;justify-content:space-between;padding:2px;font-size:13px;color:var(--ink-dim)"><span>悟性 '+S.wu+'</span><span>机缘 '+S.jiyuan+'</span><span>灵石 '+S.ls+'</span></div>';
+  $('stats').insertAdjacentHTML('beforeend', info);
+};
+const renderBadges = function(){
+  var root = rootById(S.rootId);
+  var gf = gongfaById(S.gongfa);
+  var b = '';
+  var o = ORIGINS.filter(function(x){return x.id===S.origin;})[0];
+  if(o) b += '<span class="badge">'+o.ic+' '+o.name+'</span>';
+  if(root) b += '<span class="badge gold">灵根·'+root.name+'</span>';
+  if(gf) b += '<span class="badge">功法·'+gf.name+'</span>';
+  if(S.sect) b += '<span class="badge '+(SECTS[S.sect].kind==='魔道'?'dark':'')+'">'+SECTS[S.sect].name+'</span>';
+  if(S.partner) b += '<span class="badge dark">'+partnerObj().ic+' '+partnerObj().name+'</span>';
+  if(S.pet) b += '<span class="badge gold">'+petObj().ic+' '+petObj().name+'</span>';
+  if(S.flags.hero) b += '<span class="badge dark">天命</span>';
+  $('badges').innerHTML = b;
+};
+const renderItems = function(){
+  var list = $('itemList');
+  list.innerHTML = '';
+  var any = false;
+  for(var id in S.items){
+    var it = ITEMS[id];
+    if(!it) continue;
+    any = true;
+    var row = document.createElement('div');
+    row.className='item';
+    row.innerHTML = '<span class="nm">'+it.ic+' '+it.name+(it.cat==='功法'?'':'')+' ×'+S.items[id]+'</span>';
+    if(it.cat==='丹'){
+      var ub = document.createElement('button');
+      ub.className='sbtn';
+      ub.textContent='服';
+      ub.style.padding='1px 8px';
+      (function(iid){ ub.onclick=function(){ useItem(iid); }; })(id);
+      row.appendChild(ub);
+    } else if(it.cat==='宝' || it.cat==='秘'){
+      var ib = document.createElement('button');
+      ib.className='sbtn';
+      ib.style.padding='1px 8px';
+      if(it.box){
+        ib.textContent='开';
+        (function(iid){ ib.onclick=function(){ useBox(iid); }; })(id);
+      } else {
+        ib.textContent='详';
+        (function(iid, itd){ ib.onclick=function(){ toast(itd); }; })(id, it.desc);
+      }
+      row.appendChild(ib);
+    }
+    list.appendChild(row);
+  }
+  $('invEmpty').style.display = any? 'none':'block';
+};
+const actionAvail = function(a){
+  if(!a.need) return true;
+  if(a.id==='found') return S.realm>=4;
+  if(a.id==='sleep') return S.realm>=6;
+  for(var i=0;i<a.need.length;i++){
+    var n = a.need[i];
+    if(n==='realm1' && S.realm<1) return false;
+    if(n==='realm2' && S.realm<2) return false;
+    if(n==='realm6' && S.realm<6) return false;
+  }
+  return true;
+};
+const renderActions = function(){
+  var box = $('acts');
+  box.innerHTML = '';
+  for(var i=0;i<ACTIONS.length;i++){
+    var a = ACTIONS[i];
+    if(!actionAvail(a)) continue;
+    var b = document.createElement('button');
+    b.className = 'act';
+    var tm = a.tm>0? a.tm+'年':'即时';
+    b.innerHTML = '<span class="ic">'+a.ic+'</span><span class="tx"><b>'+a.name+'</b><span>'+a.desc+'</span></span><span class="tm">'+tm+'</span>';
+    (function(id){ b.onclick=function(){ doAction(id); }; })(a.id);
+    box.appendChild(b);
+  }
+};
+const renderBtk = function(){
+  var btk = $('btk');
+  if(!S || S.ended){ btk.style.display='none'; return; }
+  if(S.progress>=100){
+    btk.style.display='block';
+    if(S.realm===7) btk.textContent = '破 碎 虚 空';
+    else if(S.realm===0) btk.textContent = '引 气 入 体';
+    else btk.textContent = '冲 关 破 境';
+  } else btk.style.display='none';
+};
+
+/* ================= 创建角色 ================= */
+var CREATE = {origin:'sansan', root:null, rerolls:0, rollHist:[]};
+const RANDOM_NAMES = ['云逸','墨尘','青玄','洛尘','苏白','楚风','叶秋','沈夜','顾长生','林晚','白鹿','玄机'];
+const originName = function(id){ var o=ORIGINS.filter(function(x){return x.id===id;})[0]; return o?o.name:id; };
+const rollRoot = function(){
+  var total=0;
+  var weights = ROOTS.map(function(r){
+    var w = r.w;
+    if(r.id==='tian') w += CREATE.rerolls*0.06;
+    if(r.id==='dan') w += CREATE.rerolls*0.02;
+    return w;
+  });
+  for(var i=0;i<weights.length;i++) total+=weights[i];
+  var r = Math.random()*total;
+  var hit = ROOTS[0];
+  for(var j=0;j<ROOTS.length;j++){ r-=weights[j]; if(r<=0){ hit=ROOTS[j]; break; } }
+  CREATE.root = hit.id;
+  var card = $('rootCard');
+  var quality = hit.mult>=1.5? '绝世之资！' : (hit.mult>=1.2? '天资卓绝' : (hit.mult>=0.9? '资质上佳':'资质平平'));
+  var color = hit.cl==='紫'? '#b9a6ff' : (hit.cl==='金'?'#e6c47a':'#7ee8c9');
+  card.innerHTML = '<div class="rn" style="color:'+color+'">『'+hit.name+'』 · '+quality+'</div><p style="font-size:12.5px;color:var(--ink-dim)">'+hit.desc+'</p>';
+  if(CREATE.rerolls>=66 && hit.id!=='tian'){
+    CREATE.root='tian';
+    var t = rootById('tian');
+    card.innerHTML = '<div class="rn" style="color:#e6c47a">『'+t.name+'』 · 天道垂青！</div><p style="font-size:12.5px;color:var(--ink-dim)">'+t.desc+'</p>';
+    toast('✨ 你的诚心感动了天道……');
+  }
+};
+const renderOrigins = function(){
+  var grid = $('originGrid');
+  grid.innerHTML='';
+  for(var i=0;i<ORIGINS.length;i++){
+    var o = ORIGINS[i];
+    var b=document.createElement('button');
+    b.className='opt'+(o.id===CREATE.origin?' sel':'');
+    b.innerHTML='<b>'+o.ic+' '+o.name+'</b><span>'+o.desc+'</span>';
+    (function(id){ b.onclick=function(){ CREATE.origin=id; renderOrigins(); }; })(o.id);
+    grid.appendChild(b);
+  }
+};
+const goTitle = function(fresh){
+  $('titleScreen').style.display='flex';
+  $('endScreen').classList.remove('on');
+  CREATE.rerolls = 0;
+  if(fresh){
+    $('inpName').value = '';
+    var hint = '为你取一个名字…';
+    if(META && META.runs>0) hint = '第 '+(META.runs+1)+' 世，取一个名字…（轮回加成：悟性+'+Math.min(3,META.runs)+'）';
+    $('inpName').placeholder = hint;
+  }
+  renderOrigins();
+  rollRoot();
+};
+const startGame = function(){
+  var name = ($('inpName').value||'').trim();
+  if(!name) name = pick(RANDOM_NAMES);
+  loadMeta();
+  S = newState({origin:CREATE.origin, root:CREATE.root, name:name});
+  var gift = SECRET_GIFT(name);
+  S.once = {};
+  var story = $('story');
+  story.innerHTML = '';
+  UI.queue = [];
+  UI.waiting=false;
+  $('titleScreen').style.display='none';
+  var o = ORIGINS.filter(function(x){return x.id===S.origin;})[0];
+  var root = rootById(S.rootId);
+  say('','【'+(META.runs>0?'第 '+(META.runs+1)+' 世':'第一世')+' · '+S.name+'】','sys');
+  say('','天地玄黄，宇宙洪荒。你降生于这一方名为「九州」的天地。','tell');
+  say('','你出身'+o.name+'，身具'+root.name+'。'+o.desc,'tell');
+  if(META.runs>0){
+    var bw = Math.min(3,META.runs);
+    S.wu += bw;
+    say('','轮回转世，你的神魂比寻常人多了一分灵光（轮回加成：悟性+'+bw+'）。','good');
+  }
+  if(gift) say('',gift,'pur');
+  say('','这一世，你是要问道长生，还是堕入魔道；是开宗立派，还是逍遥人间？一切，皆由你一步步走来。','tell');
+  say('','左侧为你的本命与随身之物，右侧为修行之法。点击右侧行动，岁月便会流转。','sys');
+  say('','提示：界面中藏有一些小小的秘密……多点点月亮、多输输秘语，或许有惊喜。','sys');
+  refreshAll();
+  saveRun();
+  if(S.progress>=100) renderBtk();
+};
+/* ================= 弹窗：图鉴/成就/指引 ================= */
+const openGallery = function(){
+  var rows = '';
+  var count = 0;
+  var keys = Object.keys(ENDINGS);
+  for(var i=0;i<keys.length;i++){
+    var k = keys[i];
+    var e = ENDINGS[k];
+    var got = META.ends[k];
+    if(got) count++;
+    var hidden = (e.cat==='隐藏'||e.cat==='趣闻');
+    rows += '<div class="gal '+(got?'':'lock')+'" title="'+(got?esc(e.hint):'尚未解锁')+'">'+(got?('<span class="gname">'+e.name+'</span><span class="gtype">'+e.tag+' · '+e.cat+'</span>'):('<span class="gname">？？？</span><span class="gtype">'+(hidden?'隐藏':'未解锁')+'</span>'))+'</div>';
+  }
+  openModal('<h2>结局图鉴</h2><p style="text-align:center;color:var(--ink-dim)">已解锁 '+count+' / '+keys.length+'</p><div class="galGrid">'+rows+'</div><p style="font-size:12px;color:var(--ink-faint)">金色为已解锁结局，灰色为尚在命运长河中等待你的结局。隐藏结局，需要特别的缘分。</p><button class="close" id="closeModalBtn">合上卷宗</button>');
+  $('closeModalBtn').onclick=function(){ closeModal(); };
+};
+const openAchi = function(){
+  var rows='';
+  var got=0;
+  for(var i=0;i<ACHIS.length;i++){
+    var a=ACHIS[i];
+    var done = META.achis[a.id];
+    if(done) got++;
+    rows += '<div class="achi '+(done?'done':'')+'"><span class="an">'+(done?'✨':'·')+' '+a.name+'</span><span class="ad">'+a.desc+'</span></div>';
+  }
+  openModal('<h2>成就</h2><p style="text-align:center;color:var(--ink-dim)">已达成 '+got+' / '+ACHIS.length+'</p>'+rows+'<button class="close" id="closeModalBtn">合上卷宗</button>');
+  $('closeModalBtn').onclick=function(){ closeModal(); };
+};
+const openHelp = function(){
+  var h = '<h2>修行指引</h2>'
+  + '<h3>怎么玩</h3>'
+  + '<p>你扮演一名求道者，从凡人一步步修行。右侧的每个行动都会消耗光阴，光阴耗尽，一世便终。修为圆满后可「冲关破境」，境界越高，寿元越长。</p>'
+  + '<h3>属性</h3>'
+  + '<p>气血：受伤会下降，归零则身陨。心境：过低易生心魔。功德与魔障：你每一次选择都在书写因果，也将决定飞升时的道路。悟性与机缘：前者决定修行速度，后者决定奇遇多寡。</p>'
+  + '<h3>境界</h3>'
+  + '<p>凡人 → 炼气 → 筑基 → 金丹 → 元婴 → 化神 → 炼虚 → 大乘 → 飞升。金丹之后，破境需渡天劫，可备破障丹、避雷珠等宝物。</p>'
+  + '<h3>长生之外</h3>'
+  + '<p>除了飞升，你还可以开宗立派、归隐人间、与道侣双宿双飞……结局多达一百种，其中有飞升命格、奇遇终局，也不乏隐藏结局与彩蛋。</p>'
+  + '<h3>一些小秘密</h3>'
+  + '<p>· 试着用键盘输入：fenglingyueying、miao、999、tiandiwuji<br>· 试着连点右上角那轮月亮<br>· 试着取一些特别的名字，比如「韩立」<br>· 积攒五万灵石却一毛不拔？<br>· 突破化神后，试着「沉睡悟道」</p>'
+  + '<p style="color:var(--gold)">祝道友仙途坦荡，得偿所愿。</p>'
+  + '<button class="close" id="closeModalBtn">知晓了</button>';
+  openModal(h);
+  $('closeModalBtn').onclick=function(){ closeModal(); };
+};
+const saveRun = function(){
+  if(!S || S.ended) return;
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){}
+};
+const loadRun = function(){
+  try{
+    var raw = localStorage.getItem(LS_KEY);
+    if(!raw){ toast('尚无存档'); return; }
+    var d = JSON.parse(raw);
+    if(!d || !d.name){ toast('存档已损坏'); return; }
+    S = d;
+    S.ended = false;
+    $('story').innerHTML = '';
+    UI.waiting=false; UI.queue=[]; UI.currentEvent=null;
+    closeModal();
+    $('endScreen').classList.remove('on');
+    $('titleScreen').style.display='none';
+    say('','存档已读取。道友，欢迎回来。','sys');
+    say('','你如今是'+realmName()+'修士，年'+S.age+'，寿余'+S.life+'载。','sys');
+    refreshAll();
+    saveMeta();
+    toast('读档成功');
+  }catch(e){ toast('读档失败'); }
+};
+/* ================= 音效 ================= */
+var muted = false;
+var actx = null;
+const sfx = function(kind){
+  if(muted) return;
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    var o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    var t0 = actx.currentTime;
+    var f0=660, f1=660, dur=0.15;
+    if(kind==='good'){ f0=523; f1=784; dur=0.18; }
+    else if(kind==='bad'){ f0=220; f1=110; dur=0.3; }
+    else if(kind==='gong'){ f0=196; f1=98; dur=0.9; }
+    else if(kind==='click'){ f0=880; f1=880; dur=0.06; }
+    o.type='sine';
+    o.frequency.setValueAtTime(f0,t0);
+    o.frequency.exponentialRampToValueAtTime(Math.max(40,f1), t0+dur);
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(0.12,t0+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    o.start(t0); o.stop(t0+dur+0.02);
+  }catch(e){}
+};
+/* ================= 秘语 & 彩蛋 ================= */
+var keyBuf = '';
+const CODES = [
+  {c:'fenglingyueying', flag:'codeFeng', ev:'code_oldman', hint:'风灵月影'},
+  {c:'miao', flag:'codeMiao', ev:'code_cat', hint:'喵'},
+  {c:'999', flag:'code999', ev:'code_999', hint:'999'},
+  {c:'tiandiwuji', flag:'codeWuji', ev:'code_wuji', hint:'天地无极'}
+];
+const onKey = function(e){
+  var tag = (document.activeElement? document.activeElement.tagName:'');
+  if(tag==='INPUT' || tag==='TEXTAREA') return;
+  if(!S || S.ended) return;
+  var k = String(e.key||'');
+  if(k.length>1) return;
+  keyBuf = (keyBuf + k.toLowerCase()).slice(-20);
+  for(var i=0;i<CODES.length;i++){
+    var cd = CODES[i];
+    if(keyBuf.indexOf(cd.c)>=0 && !S.flags[cd.flag]){
+      S.flags[cd.flag]=1;
+      sfx('good');
+      toast('✨ 秘语应验……');
+      UI.queue.push(cd.ev);
+      nextEventOrTurn();
+    }
+  }
+};
+var moonClicks = 0;
+const MOON_LINES = ['明月几时有？把酒问青天。','广寒宫里，好像有人在看你……','月饼，是甜的还是咸的？','你与月亮的缘分，似乎越来越深了。'];
+const onMoon = function(){
+  if(!S || S.ended) return;
+  var m = $('moon');
+  m.classList.remove('hit'); void m.offsetWidth; m.classList.add('hit');
+  moonClicks++;
+  S.flags.moonClicks = (S.flags.moonClicks||0)+1;
+  if(S.flags.moonClicks===9){
+    sfx('good');
+    toast('🌙 月中有客……');
+    S.flags.moon9=1;
+    UI.queue.push('moon_rabbit');
+    nextEventOrTurn();
+  } else if(S.flags.moonClicks>9 && S.flags.moonClicks%9===0){
+    var idx = Math.floor(S.flags.moonClicks/9)-1;
+    toast(MOON_LINES[idx % MOON_LINES.length]);
+    S.jiyuan=clamp(S.jiyuan+1,0,100);
+    refreshAll();
+  }
+  sfx('click');
+};
+var eggClicks = 0;
+const onEgg = function(){
+  eggClicks++;
+  if(eggClicks===1) toast('……你居然找到了这里。');
+  else if(eggClicks===2) toast('这枚「蛋」其实什么也没有。');
+  else if(eggClicks===3){ toast('好吧，送你一点气运。'); if(S){ S.jiyuan=clamp(S.jiyuan+3,0,100); refreshAll(); } }
+  else if(eggClicks>=4) toast('别点了，真的没有了。');
+};
+
+const useBox = function(){
+  if(!hasItem('muyu',1)) return;
+  addItem('muyu',-1);
+  sayLine('你小心翼翼地撬开神秘木匣……','sys');
+  openBox();
+  refreshAll();
+};
+/* ================= 背景（星月云） ================= */
+const injectStyle = function(){
+  var s = document.createElement('style');
+  s.textContent = '@keyframes twinkle{0%,100%{opacity:.12;transform:scale(1)}50%{opacity:.95;transform:scale(1.35)}}'
+  + '@keyframes clouddrift{from{transform:translateX(-30vw)}to{transform:translateX(120vw)}}'
+  + '@keyframes shoot{0%{transform:translate(0,0);opacity:0}8%{opacity:1}100%{transform:translate(-46vw,26vh);opacity:0}}';
+  document.head.appendChild(s);
+};
+const makeStars = function(){
+  var wrap = $('stars');
+  var n = Math.min(180, Math.floor(window.innerWidth*window.innerHeight/9000));
+  for(var i=0;i<n;i++){
+    var d = document.createElement('div');
+    d.className='tw';
+    var sz = (Math.random()*1.6+0.4).toFixed(1);
+    d.style.cssText = 'left:'+(Math.random()*100).toFixed(2)+'%;top:'+(Math.random()*100).toFixed(2)+'%;width:'+sz+'px;height:'+sz+'px;animation:twinkle '+(Math.random()*4+2).toFixed(1)+'s ease-in-out '+(Math.random()*4).toFixed(1)+'s infinite;';
+    wrap.appendChild(d);
+  }
+};
+const makeClouds = function(){
+  var wrap = $('clouds');
+  for(var i=0;i<6;i++){
+    var c = document.createElement('div');
+    c.className='cloud';
+    var h = (Math.random()*70+40).toFixed(0);
+    var w = (Math.random()*260+160).toFixed(0);
+    var dur = (Math.random()*90+70).toFixed(0);
+    var delay = (-Math.random()*90).toFixed(0);
+    c.style.cssText = 'width:'+w+'px;height:'+h+'px;top:'+(Math.random()*55).toFixed(1)+'%;animation:clouddrift '+dur+'s linear '+delay+'s infinite;';
+    wrap.appendChild(c);
+  }
+};
+const spawnShoot = function(){
+  var sky = $('sky');
+  var d = document.createElement('div');
+  d.className='shot';
+  d.style.cssText = 'left:'+(Math.random()*60+10).toFixed(1)+'%;top:'+(Math.random()*30).toFixed(1)+'%;animation:shoot '+(Math.random()*1+0.9).toFixed(1)+'s linear forwards;';
+  sky.appendChild(d);
+  setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 2600);
+};
+const scheduleShoot = function(){
+  setTimeout(function(){
+    if(S && !S.ended) spawnShoot();
+    scheduleShoot();
+  }, Math.random()*9000+7000);
+};
+/* ================= 启动 ================= */
+const bindUI = function(){
+  $('btk').onclick = function(){ sfx('gong'); startBreakthrough(); };
+  $('btnHelp').onclick = function(){ openHelp(); };
+  $('btnEnds').onclick = function(){ openGallery(); };
+  $('btnAchi').onclick = function(){ openAchi(); };
+  $('btnSave').onclick = function(){ saveRun(); toast('已存档'); sfx('click'); };
+  $('btnLoad').onclick = function(){ loadRun(); sfx('click'); };
+  $('btnSound').onclick = function(){ muted=!muted; $('btnSound').textContent = muted? '静音':'音效'; toast(muted?'已静音':'音效已开'); };
+  $('btnNew').onclick = function(){ S=null; UI.queue=[]; UI.waiting=false; goTitle(false); };
+  $('btnReroll').onclick = function(){ CREATE.rerolls++; rollRoot(); sfx('click'); };
+  $('createStart').onclick = function(){ sfx('gong'); startGame(); };
+  $('inpName').addEventListener('keydown', function(e){ if(e.key==='Enter') startGame(); });
+  $('btnAgain').onclick = function(){ sfx('gong'); goAgain(); };
+  $('btnEndHome').onclick = function(){ goHome(); };
+  $('btnEndGallery').onclick = function(){
+    $('endScreen').classList.remove('on');
+    $('veil').style.zIndex = 40;
+    openGallery();
+  };
+  $('moon').addEventListener('click', onMoon);
+  $('egg').addEventListener('click', onEgg);
+  document.addEventListener('keydown', onKey);
+  window.addEventListener('resize', function(){ $('stars').innerHTML=''; makeStars(); });
+};
+const boot = function(){
+  loadMeta();
+  injectStyle();
+  makeStars();
+  makeClouds();
+  scheduleShoot();
+  bindUI();
+  goTitle(false);
+};
+if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', boot); }
+else { boot(); }
+
+/* ===== 100 种结局扩展 ===== */
+const genericTail = function(ph){
+  var bits=[];
+  if(S.karma>=60) bits.push('一世行善，广结善缘。');
+  else if(S.karma<=-30) bits.push('这一生毁誉参半，功过难评。');
+  if(S.partner) bits.push('所幸有'+(ph.partner||'道侣')+'相伴。');
+  if(S.pet) bits.push('足下有'+(ph.pet||'灵宠')+'相随。');
+  if(S.flags.hero) bits.push('冥冥之中，似有天命垂青。');
+  return bits.length? bits.join('') : '回首前尘，恍如一梦。';
+};
+const pickAscendEnding = function(){
+  var r = rootById(S.rootId);
+  if(hasItem('longzhu',1)) return 'ascend_dragon';
+  if(S.karma>=80) return 'ascend_sage';
+  if(S.gongfa==='waijia' && S.hp>=85) return 'ascend_body';
+  if(S.age<80) return 'ascend_fast';
+  if(r && r.id==='lei') return 'ascend_lei';
+  if(r && r.id==='bing') return 'ascend_bing';
+  if(r && r.id==='tian') return 'ascend_tian';
+  if(S.stats.refine>=12 && S.flags.alchMaster) return 'ascend_herb';
+  if(S.ls>=10000) return 'ascend_rich';
+  if(S.origin==='fanwu') return 'ascend_wu';
+  if(S.origin==='sansan') return 'ascend_sansan';
+  if(S.origin==='mingmen') return 'ascend_mingmen';
+  if(S.origin==='modao' && S.karma>=0) return 'ascend_modao';
+  if(S.origin==='yaotong') return 'ascend_yaotong';
+  if(!S.partner && S.mood>=90) return 'ascend_ruthless';
+  if(S.partner && S.partnerLove>=90 && S.karma<0) return 'ascend_love';
+  if(itemCount()>=15) return 'ascend_collector';
+  if(S.mo>=30 && S.mo<45) return 'ascend_gray';
+  if(S.stats.acts>=250) return 'ascend_hard';
+  if(S.jiyuan>=80) return 'ascend_luck';
+  if(S.mood>=95) return 'ascend_mood';
+  if(S.ls<=0) return 'ascend_poor';
+  if(S.sect==='qingyun') return 'ascend_sect';
+  if(S.sect==='wanbao' && S.ls>=3000) return 'ascend_wanbao';
+  if(S.wu>=60) return 'ascend_star';
+  if(S.pet && S.mood<70) return 'ascend_pet';
+  if(S.partner && S.partnerLove<90) return 'ascend_partner';
+  if(r && r.id==='dan') return 'ascend_root_dan';
+  if(r && r.id==='shuang') return 'ascend_root_shuang';
+  if(r && r.id==='wei') return 'ascend_root_wei';
+  if(r && r.id==='san') return 'ascend_root_san';
+  if(r && r.id==='za') return 'ascend_root_za';
+  if(S.mo>0 && S.mo<30) return 'ascend_poison';
+  return 'ascend';
+};
+const pickRetireEnding = function(){
+  if(S.realm>=4){
+    if(S.partner && S.partnerLove>=80) return 'retire_couple';
+    if(S.ls>=10000) return 'retire_rich';
+    if(S.pet) return 'retire_pet';
+    if(S.mood>=90) return 'retire_dao';
+    if(S.jiyuan>=70) return 'retire_luck';
+    return 'retire_immortal';
+  }
+  if(S.realm>=2){
+    if(S.gongfa==='tiangang') return 'retire_sword';
+    if(S.stats.refine>=5) return 'retire_alchemist';
+    if(S.karma>=40) return 'retire_benevolent';
+    if(S.mo>=30) return 'retire_dark';
+    return 'retire_ancestor';
+  }
+  if(S.karma>=30) return 'retire_goodman';
+  return 'retire_mortal';
+};
+const pickDeathEnding = function(cause){
+  if(cause==='hp'){
+    if(S.mo>=50) return 'demonic_death';
+    if(S.karma>=60) return 'death_humble';
+    if(S.gongfa==='tiangang') return 'death_sword';
+    if(S.origin==='fanwu') return 'death_wu';
+    if(S.sect==='qingyun') return 'death_sect';
+    if(S.mo>=25) return 'death_mo';
+    return 'hp_death';
+  }
+  if(S.realm>=3 && S.mood>=35){
+    if(S.age>=1000) return 'old1000';
+    if(S.age>=500) return 'old500';
+    if(S.jiyuan>=80) return 'death_luck';
+    return 'reincarnate';
+  }
+  if(S.karma>=80 && S.realm>=1) return 'buddha';
+  if(S.ls>=50000 && S.realm<=1) return 'miser';
+  if(S.realm>=2){
+    if(S.age>=5000) return 'old5000';
+    if(S.age>=1000) return 'old1000';
+    if(S.age>=500) return 'old500';
+    if(S.flags.alchMaster) return 'death_alchemist';
+    if(S.partner && S.partnerLove>=80) return 'death_beloved';
+    if(S.partner) return 'death_partner';
+    if(S.pet) return 'death_pet';
+    if(S.karma<=-50) return 'death_dark';
+    if(S.ls>=10000) return 'death_rich';
+    if(S.ls<=0) return 'death_poor';
+    if(!S.partner && !S.pet && S.mood<30) return 'death_lonely';
+    if(S.karma>=40) return 'death_honest';
+    return 'zuohua';
+  }
+  if(S.age>=200) return 'old200';
+  if(S.age>=100) return 'old100';
+  if(S.karma<=-30) return 'death_bad';
+  return 'mortal_dream';
+};
+Object.assign(ENDINGS, {
+ ascend_dragon:{name:'龙珠化龙·真龙之身', cat:'飞升', tag:'命格', hint:'身怀龙珠，飞升时化出真龙之身。', lead:'怀揣龙珠，飞升之际龙吟九霄，你竟化出真龙之身，破空而去，直入九天。'},
+ ascend_sage:{name:'功德成圣·圣贤飞升', cat:'飞升', tag:'命格', hint:'功德达到八十后飞升。', lead:'一生积德行善，飞升之际祥云缭绕，天地同贺，你化作一尊圣贤踏空而去。'},
+ ascend_body:{name:'以力证道·肉身成圣', cat:'飞升', tag:'命格', hint:'以炼体之法、气血充盈之身飞升。', lead:'不借外物，只凭一身气血硬撼天门，竟真的被你生生撞开了一条路。'},
+ ascend_fast:{name:'年少成仙', cat:'飞升', tag:'命格', hint:'未及八十岁便飞升。', lead:'年未弱冠便已问鼎长生，古今罕见，一时传为神话。'},
+ ascend_lei:{name:'雷霆证道', cat:'飞升', tag:'命格', hint:'身负雷灵根而飞升。', lead:'你以万钧天雷洗炼己身，雷光散尽，一个崭新的你立于云端。'},
+ ascend_bing:{name:'冰魄证道', cat:'飞升', tag:'命格', hint:'身负冰灵根而飞升。', lead:'心如寒冰，道如霜雪，你踏着漫天冰晶步入天门。'},
+ ascend_tian:{name:'天灵飞升', cat:'飞升', tag:'命格', hint:'以天灵根之资飞升。', lead:'先天道体，修行一日千里，终成正果，连天劫都为之退避。'},
+ ascend_herb:{name:'百草飞升', cat:'飞升', tag:'命格', hint:'丹道大成后飞升。', lead:'以丹入道，药香开天门，你衣袖间犹带三分草木清气。'},
+ ascend_rich:{name:'财可通神', cat:'飞升', tag:'命格', hint:'坐拥万贯灵石后飞升。', lead:'有钱能使鬼推磨，灵石亦能开天门，你算是把这八个字印证到底了。'},
+ ascend_wu:{name:'以武证道', cat:'飞升', tag:'命格', hint:'以沙场老卒之身飞升。', lead:'军中老卒，一拳破天，让漫天仙神都记住了凡人的拳头。'},
+ ascend_sansan:{name:'逍遥散仙', cat:'飞升', tag:'命格', hint:'以散修之身飞升。', lead:'无门无派，自成一派，你逍遥天地间，谁见了都要称一声「散仙」。'},
+ ascend_mingmen:{name:'名门正果', cat:'飞升', tag:'命格', hint:'以名门弟子之身飞升。', lead:'名门之后，光大门楣，你以一身正法证得大道，宗门以你为荣。'},
+ ascend_modao:{name:'逆天改命', cat:'飞升', tag:'命格', hint:'魔道出身却走出一条正途并飞升。', lead:'魔道出身，却偏偏走出了一条自己的正途，这一飞升，狠狠打了所有旧识的脸。'},
+ ascend_yaotong:{name:'草木成仙', cat:'飞升', tag:'命格', hint:'以药园童子之身飞升。', lead:'药园童子，与万木同心，终得青帝垂青，草木皆为你引路。'},
+ ascend_ruthless:{name:'太上忘情', cat:'飞升', tag:'命格', hint:'斩却情缘、心境圆满后飞升。', lead:'斩却情丝，心若止水，你终于达到了那传说中的无情之境。'},
+ ascend_love:{name:'情根深种', cat:'飞升', tag:'命格', hint:'为情所系却仍证道飞升。', lead:'为一人，你逆了这天道，也成就了自己的一段传奇。'},
+ ascend_collector:{name:'万宝仙尊', cat:'飞升', tag:'命格', hint:'身怀众多奇珍后飞升。', lead:'身怀无数奇珍，以宝证道，你踏着漫天宝光飞升而去。'},
+ ascend_gray:{name:'亦正亦邪', cat:'飞升', tag:'命格', hint:'在正邪之间走出第三条路。', lead:'正邪之间，你走出了第三条路，连天道都拿你没办法。'},
+ ascend_hard:{name:'大毅力者', cat:'飞升', tag:'命格', hint:'资质平平却苦修数百年后飞升。', lead:'资质平平，却以数百载苦修，终成正果，这份毅力，胜过万千灵根。'},
+ ascend_luck:{name:'气运之子', cat:'飞升', tag:'命格', hint:'机缘极高时飞升。', lead:'气运加身，逢凶化吉，你一路高歌，连天门都像是为你提前打开。'},
+ ascend_mood:{name:'心如止水', cat:'飞升', tag:'命格', hint:'心境圆满时飞升。', lead:'心若明镜，道法自然，你在极致的平静中悄然飞升。'},
+ ascend_poor:{name:'苦行仙', cat:'飞升', tag:'命格', hint:'身无分文却飞升。', lead:'身无长物，唯道而已。你两袖清风，却比谁都富有。'},
+ ascend_sect:{name:'护道真仙', cat:'飞升', tag:'命格', hint:'作为青云宗弟子飞升。', lead:'青云门下，护道卫道，你终以一身正气得道飞升，成为宗门传说。'},
+ ascend_wanbao:{name:'商道飞升', cat:'飞升', tag:'命格', hint:'以万宝楼客卿之身飞升。', lead:'万宝楼中，财源广进，商道通天，你让仙人们都见识了「和气生财」的威力。'},
+ ascend_star:{name:'星辰之体', cat:'飞升', tag:'命格', hint:'悟性极高时飞升。', lead:'星光入体，你与周天星辰共鸣，化作一颗新星，高悬于九天之上。'},
+ ascend_pet:{name:'灵宠随行', cat:'飞升', tag:'命格', hint:'有灵宠相伴却独自飞升。', lead:'灵宠相伴多年，你踏上仙桥时，它于人间久久凝望，终是化作一道光追了上去。'},
+ ascend_partner:{name:'红尘仙侣', cat:'飞升', tag:'命格', hint:'与道侣携手飞升（未满双宿双飞条件时）。', lead:'与道侣携手，共赴天门，从此仙途不再孤单。'},
+ ascend_root_dan:{name:'五行归一', cat:'飞升', tag:'命格', hint:'单灵根飞升。', lead:'单灵根者，纯净无瑕，修行路上你几乎不曾遇到真正的瓶颈。'},
+ ascend_root_shuang:{name:'双灵相生', cat:'飞升', tag:'命格', hint:'双灵根飞升。', lead:'双灵根者，阴阳相济，你的每一步都走得稳如磐石。'},
+ ascend_root_wei:{name:'灵根重塑', cat:'飞升', tag:'命格', hint:'昔日伪灵根，终成大器。', lead:'昔日伪灵根，今日飞升仙。你用一生证明：天资，从来不是枷锁。'},
+ ascend_root_san:{name:'三灵齐聚', cat:'飞升', tag:'命格', hint:'三灵根飞升。', lead:'三灵根者，厚积薄发，你把一手平凡的牌，打出了王炸。'},
+ ascend_root_za:{name:'杂灵成道', cat:'飞升', tag:'命格', hint:'杂灵根飞升。', lead:'五行驳杂又如何？你硬是凭着一股倔劲，把杂灵根修成了大道。'},
+ ascend_poison:{name:'带煞飞升', cat:'飞升', tag:'命格', hint:'身带魔煞却未失本心而飞升。', lead:'身带魔煞，却未失本心。你带着一身杀气，踏上了仙途之巅。'}
+});
+
+Object.assign(ENDINGS, {
+ retire_couple:{name:'神仙眷侣', cat:'善果', tag:'归隐', hint:'与道侣情深意笃，归隐山林。', lead:'你与道侣携手归隐，神仙眷侣，羡煞旁人。'},
+ retire_rich:{name:'富甲一方', cat:'善果', tag:'归隐', hint:'腰缠万贯，归隐田园。', lead:'你带着万贯家财归隐，成了远近闻名的富家翁。'},
+ retire_pet:{name:'与兽归隐', cat:'善果', tag:'归隐', hint:'带着灵宠归隐。', lead:'你与灵宠隐于山野，春看花，冬听雪，好不自在。'},
+ retire_dao:{name:'清修道人', cat:'善果', tag:'归隐', hint:'心境圆满后归隐。', lead:'你于深山结庐清修，道心愈坚，宛如出世神仙。'},
+ retire_luck:{name:'福星高照', cat:'善果', tag:'归隐', hint:'机缘深厚时归隐。', lead:'你福缘深厚，归隐后依然逢凶化吉，自在逍遥。'},
+ retire_sword:{name:'剑隐山林', cat:'善果', tag:'归隐', hint:'剑修归隐。', lead:'放下三尺青锋，你在竹林中过起了煮酒抚琴的日子。'},
+ retire_alchemist:{name:'丹房老人', cat:'善果', tag:'归隐', hint:'丹道有成后归隐。', lead:'你在市井开了一间小小丹房，悬壶济世，乐在其中。'},
+ retire_benevolent:{name:'大善长者', cat:'善果', tag:'归隐', hint:'广积功德后归隐。', lead:'你修桥铺路、扶危济困，成了四里八乡人人敬重的大善人。'},
+ retire_dark:{name:'魔隐', cat:'善果', tag:'归隐', hint:'魔道中人急流勇退。', lead:'你放下屠刀，隐姓埋名，从此江湖上少了一个魔头，多了一个怪老头。'},
+ retire_goodman:{name:'积善之家', cat:'善果', tag:'归隐', hint:'心地善良，安享平凡。', lead:'你本本分分地过日子，积善之家，必有余庆。'},
+ death_humble:{name:'好人短命', cat:'命途', tag:'道陨', hint:'一生行善却英年早逝。', lead:'都说好人有好报，可天道有时也不讲道理。你走了，世人为你落泪。'},
+ death_sword:{name:'剑折沙场', cat:'命途', tag:'道陨', hint:'剑修战死。', lead:'剑折，人亡。你倒在血泊里，手中还紧握着那柄断剑。'},
+ death_wu:{name:'马革裹尸', cat:'命途', tag:'道陨', hint:'沙场老卒战死。', lead:'将军百战死，壮士十年归。你终究没能回到故乡。'},
+ death_sect:{name:'为宗捐躯', cat:'命途', tag:'道陨', hint:'为宗门战死。', lead:'为宗门，你流尽了最后一滴血。山门之上，你的名字被刻进了祠堂。'},
+ death_mo:{name:'半魔陨落', cat:'命途', tag:'道陨', hint:'半入魔道者陨落。', lead:'你在正邪之间走得太久，终究没能逃过这一劫。'},
+ death_alchemist:{name:'丹炉之劫', cat:'命途', tag:'道陨', hint:'炼丹师寿终。', lead:'一生与丹炉为伴，最后，你也在丹香中安然合眼。'},
+ death_beloved:{name:'含笑九泉', cat:'命途', tag:'道陨', hint:'与道侣情深，寿终正寝。', lead:'有至爱相伴，这一生，你走得很安详。'},
+ death_partner:{name:'黄泉有伴', cat:'命途', tag:'道陨', hint:'有道侣相送的寿终。', lead:'你走了，道侣守在你身旁，泪落无声。'},
+ death_pet:{name:'灵宠殉主', cat:'命途', tag:'道陨', hint:'灵宠相随至最后一刻。', lead:'你合眼时，灵宠哀鸣不止，久久不肯离去。'},
+ death_dark:{name:'恶贯满盈', cat:'命途', tag:'道陨', hint:'作恶多端，不得善终。', lead:'因果循环，报应不爽。你的结局，早已注定。'},
+ death_rich:{name:'富贵云烟', cat:'命途', tag:'道陨', hint:'家财万贯，终究成空。', lead:'金山银山，终成云烟。你走时，两手空空。'},
+ death_poor:{name:'家徒四壁', cat:'命途', tag:'道陨', hint:'一贫如洗，潦倒而终。', lead:'这一生，你什么也没攒下，只留一间空屋。'},
+ death_lonely:{name:'孤灯残影', cat:'命途', tag:'道陨', hint:'孤独终老。', lead:'无人相伴，你在孤灯下走完了最后一程。'},
+ death_honest:{name:'一世清名', cat:'命途', tag:'道陨', hint:'清白一世，安然离世。', lead:'你走得清清白白，乡邻无不称道。'},
+ death_bad:{name:'恶有恶报', cat:'命途', tag:'道陨', hint:'作恶之人，天不收人收。', lead:'你作恶半生，终究没能逃过惩罚。'},
+ death_luck:{name:'天妒英才', cat:'命途', tag:'道陨', hint:'气运极盛却英年早逝。', lead:'气运太盛，连天都嫉妒。你在最耀眼时，戛然而止。'},
+ old100:{name:'百岁人瑞', cat:'尘缘', tag:'善终', hint:'无灾无病，活过百岁。', lead:'能无病无灾地活过百岁，已是凡人莫大的福分。'},
+ old200:{name:'两百年道行', cat:'尘缘', tag:'善终', hint:'修行两百载而终。', lead:'两百年的道行，说长不长，说短不短，却已胜过寻常人三生。'},
+ old500:{name:'五百年之约', cat:'尘缘', tag:'善终', hint:'修行五百载而终。', lead:'五百年的光阴，你见证了太多悲欢离合，也终于看淡了生死。'},
+ old1000:{name:'千岁仙翁', cat:'尘缘', tag:'善终', hint:'寿逾千载而终。', lead:'千载悠悠，你早已是后人口中的传说。'},
+ old5000:{name:'五千载问道', cat:'尘缘', tag:'善终', hint:'问道五千载而终。', lead:'五千年问道，一朝坐化。你的一生，就是半部修行史。'}
+});
+
+Object.assign(ENDINGS, {
+ end_martial:{name:'以武证道', cat:'善果', tag:'奇遇', hint:'在山中拜入古武宗师门下。',
+  ep:'{name}放下仙途，随那白发老武师练拳。一拳一拳，年复一年。{age}岁那年，{name}一拳轰出，面前的整座山峰应声而碎。「原来武道尽头，亦是长生。」{name}大笑三声，踏空而去。世人传颂，{name}是五百年来，第一个以武证道的人。'},
+ end_peach_grove:{name:'世外桃源', cat:'尘缘', tag:'奇遇', hint:'寻得桃花源，就此留下。',
+  ep:'{name}留在了那片与世隔绝的桃花源里。春耕秋收，鸡犬相闻。偶尔有迷路的旅人闯入，{name}也只是笑一笑，递上一碗清甜的泉水。再也没有人知道，这位慈眉善目的老人，曾是修仙界中赫赫有名的修士。'},
+ end_sword_tomb:{name:'守剑人', cat:'命途', tag:'奇遇', hint:'以血祭剑，立誓守护剑冢。',
+  ep:'{name}以血祭剑，成了剑冢新的守剑人。此后千百年，{name}独坐万剑之中，看剑气如潮，听断剑低吟。偶有剑修前来寻剑，{name}便随手一指：「去吧，你的剑在那边等你。」无人知道，{name}自己，也早已成了一柄不朽的剑。'},
+ end_ghost_city:{name:'鬼市之主', cat:'隐藏', tag:'奇遇', hint:'留在鬼市，与鬼为邻。',
+  ep:'{name}留在了那座鬼市之中。渐渐地，{name}也成了一名「鬼商」，往来皆是阴魂，买卖尽是奇珍。有活人误入鬼市，见{name}气度不凡，上前问路。{name}微微一笑：「人有人路，鬼有鬼途，你既来了，便是缘分。」言罢，取出一只木匣相赠。'},
+ end_tianji:{name:'窥天机者', cat:'命途', tag:'奇遇', hint:'窥尽天机，终遭反噬。',
+  ep:'{name}窥尽了天机，也窥见了自己的结局。知晓过去未来的人，往往最是痛苦——因为一切，都成了已知的答案。{name}在无人知晓的一夜，悄然坐化。有人说{name}是遭了天谴，也有人说，{name}只是不愿再活在那份「全知」的孤独里。'},
+ end_moon_palace:{name:'广寒仙客', cat:'隐藏', tag:'奇遇', hint:'随仙子登月，永驻广寒。',
+  ep:'{name}随那白衣仙子登上月宫，成了广寒宫中唯一的客人。从此，{name}日看千年桂花开落，夜听玉兔捣药声声。人间渐渐流传起一个传说：若是在月圆之夜仰望明月，或许能看见，月宫中有一位凭栏远眺的人影，那便是{name}。'},
+ end_sea:{name:'海外散仙', cat:'飞升', tag:'奇遇', hint:'渡海寻仙，一去不返。',
+  ep:'{name}登上一叶扁舟，渡海而去。从此，东海岸边再无人见过{name}。许多年后，有出海的渔民说，在烟波浩渺处，曾见一位仙风道骨之人立于浪尖，挥手招来海雾，护佑一方。那人的模样，像极了传说中的{name}。'},
+ end_emperor:{name:'帝王师', cat:'善果', tag:'奇遇', hint:'出仕辅佐帝王，开创盛世。',
+  ep:'{name}出山辅佐帝王，文能安邦，武能定国。数十年间，海晏河清，国泰民安。{name}虽再未行仙法，却以凡人之躯，成就了比长生更不朽的功业——青史留名，万世流芳。'},
+ end_seal:{name:'以身镇魔', cat:'大德', tag:'奇遇', hint:'以身补阵，永镇魔头。',
+  ep:'{name}以身为阵眼，将那上古魔头重新封印。此后千百年，{name}的肉身化作镇魔石像，长眠于极北冰原之下。每年，都有修士不远万里前去祭拜。他们说，{name}虽死犹生，是真正的仙。'},
+ end_star:{name:'星辰化身', cat:'飞升', tag:'奇遇', hint:'与星辰合一，化作天上一颗星。',
+  ep:'{name}与那颗星辰合一，肉身化作点点星光，飞向九天。自此，夜空之中多了一颗格外明亮的星。老人们说，每当看到那颗星，便知道，那是{name}在天上，默默地注视着人间。'},
+ end_wine:{name:'醉仙', cat:'趣闻', tag:'奇遇', hint:'一醉不醒，醉卧凡尘。',
+  ep:'{name}与那醉翁对饮，一杯接一杯，终于酩酊大醉。这一醉，便是千年。待{name}悠悠转醒，早已物是人非。{name}也不恼，摇摇晃晃地起身，又寻了一处酒肆坐下：「小二，再来一壶。」从此，人间多了一位神龙见首不见尾的醉仙。'},
+ end_dream:{name:'庄周梦蝶', cat:'隐藏', tag:'奇遇', hint:'沉醉梦中，物我两忘。',
+  ep:'{name}不愿醒来，终于永远地留在了那场梦里。梦境之中，{name}是蝶，是风，是百花，亦是流云。无人能寻见{name}。只是偶尔，有人会在梦中见到一位似曾相识的身影，笑着问一句：「你说，是我梦见了你，还是你梦见了我？」'}
+});
+</script>
+</body>
+</html>
